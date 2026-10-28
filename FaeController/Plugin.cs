@@ -64,7 +64,7 @@ public sealed class Plugin : IDalamudPlugin
 
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this, faeImagePath);
-        ClockSpotsWindow = new ClockSpotsWindow();
+        ClockSpotsWindow = new ClockSpotsWindow(Configuration);
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
@@ -135,8 +135,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnClockSpotsCommand(string command, string args)
     {
-        // Always open (rather than toggle) so this is a reliable way to bring the window back up
-        ClockSpotsWindow.IsOpen = true;
+        // Always open (rather than toggle) so this is a reliable way to bring the window back up,
+        // clearing any locked/passthrough state from a previous close.
+        ClockSpotsWindow.Open();
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -192,7 +193,7 @@ public sealed class Plugin : IDalamudPlugin
         ChatGui.Print(new XivChatEntry { Message = message });
     }
 
-    private void OnClockSpotsLinkClicked(uint commandId, SeString args) => ClockSpotsWindow.IsOpen = true;
+    private void OnClockSpotsLinkClicked(uint commandId, SeString args) => ClockSpotsWindow.Open();
 
     public void ToggleConfigUi() => ConfigWindow.Toggle();
     public void ToggleMainUi() => MainWindow.Toggle();

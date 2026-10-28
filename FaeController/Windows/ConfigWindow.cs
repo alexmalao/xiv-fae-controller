@@ -17,7 +17,7 @@ public class ConfigWindow : Window, IDisposable
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
                 ImGuiWindowFlags.NoScrollWithMouse;
 
-        Size = new Vector2(350, 170);
+        Size = new Vector2(350, 260);
         SizeCondition = ImGuiCond.Always;
 
         configuration = plugin.Configuration;
@@ -74,5 +74,36 @@ public class ConfigWindow : Window, IDisposable
         ImGui.TextColored(
             new Vector4(1f, 0.82f, 0.2f, 1f),
             "NOTE: make sure to unbind Numpad 1-8 so the keybind inputs do not input with the plugin");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var lockOnClose = configuration.LockClockSpotsWindowOnClose;
+        if (ImGui.Checkbox("Lock clockspot window on close", ref lockOnClose))
+        {
+            configuration.LockClockSpotsWindowOnClose = lockOnClose;
+            configuration.Save();
+        }
+
+        ImGui.TextWrapped(
+            "When checked, closing the clockspot window instead locks it in place as a passthrough overlay that can't be interacted with.");
+
+        if (!lockOnClose)
+        {
+            ImGui.BeginDisabled();
+        }
+
+        var lockedOpacity = configuration.ClockSpotsLockedOpacity;
+        if (ImGui.SliderFloat("Locked Opacity", ref lockedOpacity, 0f, 1f, "%.2f"))
+        {
+            configuration.ClockSpotsLockedOpacity = lockedOpacity;
+            configuration.Save();
+        }
+
+        if (!lockOnClose)
+        {
+            ImGui.EndDisabled();
+        }
     }
 }

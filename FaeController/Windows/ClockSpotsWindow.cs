@@ -62,19 +62,50 @@ public class ClockSpotsWindow : Window, IDisposable
     private static readonly HashSet<uint> PhysicalRangedJobIds = new() { 23, 31, 38 };
     private static readonly HashSet<uint> CasterJobIds = new() { 25, 27, 35, 36, 42 };
 
+    private readonly Configuration configuration;
     private readonly ClockSpotMember?[] members = new ClockSpotMember?[SlotCount];
 
     private int draggedSlot = -1;
+    private bool isLocked;
 
-    public ClockSpotsWindow()
+    public ClockSpotsWindow(Configuration configuration)
         : base("Party Clock Spots###FAE Clock Spots Window",
             ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
+        this.configuration = configuration;
     }
 
     public void Dispose() { }
 
+    // Reopens the window as a fully interactive window, clearing any locked/passthrough state.
+    public void Open()
+    {
+        isLocked = false;
+        IsOpen = true;
+    }
+
     public override void OnOpen() => SyncPartyMembers();
+
+    public override void OnClose()
+    {
+        // If enabled, closing instead locks the window in place as a passthrough overlay
+        // rather than actually hiding it.
+        if (configuration.LockClockSpotsWindowOnClose)
+        {
+            isLocked = true;
+            IsOpen = true;
+        }
+        else
+        {
+            isLocked = false;
+        }
+    }
+
+    public override void PreDraw()
+    {
+        IsClickthrough = isLocked;
+        BgAlpha = isLocked ? configuration.ClockSpotsLockedOpacity : null;
+    }
 
     public override void Draw()
     {
