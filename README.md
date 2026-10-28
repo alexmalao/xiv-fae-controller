@@ -1,78 +1,50 @@
-> ⚠️ **Don't click Fork!**
-> 
-> This is a GitHub Template repo. If you want to use this for a plugin, [use this template][new-repo] to make a new repo!
->
-> ![image](https://github.com/goatcorp/SamplePlugin/assets/16760685/d9732094-e1ed-4769-a70b-58ed2b92580c)
+# XIV FAE Controller
 
-# SamplePlugin
+> This project started from GoatCorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) Dalamud template.
+> The original template README (prerequisites, build/activation steps, etc.) has been kept for reference at
+> [`docs/SAMPLEPLUGIN_TEMPLATE.md`](docs/SAMPLEPLUGIN_TEMPLATE.md) — check it for Dalamud/XIVLauncher setup details
+> not repeated here.
 
-[![Use This Template badge](https://img.shields.io/badge/Use%20This%20Template-0?logo=github&labelColor=grey)][new-repo]
+## Overview
 
+<!-- One or two sentences: what does this plugin actually do for the player? -->
 
-Simple example plugin for Dalamud.
+## Features
 
-This is not designed to be the simplest possible example, but it is also not designed to cover everything you might want to do. For more detailed questions, come ask in [the Discord](https://discord.gg/holdshift).
+<!--
+List real features as they're built. Example entry format:
 
-## Main Points
+### Feature name
+What it does, how to trigger it (slash command / UI / automatic), and any caveats.
+-->
 
-* Simple functional plugin
-  * Slash command
-  * Main UI
-  * Settings UI
-  * Image loading
-  * Plugin json
-* Simple, slightly-improved plugin configuration handling
-* Project organization
-  * Copies all necessary plugin files to the output directory
-    * Does not copy dependencies that are provided by dalamud
-    * Output directory can be zipped directly and have exactly what is required
-  * Hides data files from visual studio to reduce clutter
-    * Also allows having data files in different paths than VS would usually allow if done in the IDE directly
+- _(none yet — plugin is still at template baseline)_
 
+## Prerequisites
 
-The intention is less that any of this is used directly in other projects, and more to show how similar things can be done.
+* XIVLauncher, FINAL FANTASY XIV, and Dalamud installed, with the game run at least once with Dalamud enabled.
+* XIVLauncher installed to its default directory (`%AppData%\XIVLauncher`). If using a custom Dalamud dev directory, set the `DALAMUD_HOME` environment variable.
+* .NET SDK matching `SamplePlugin/SamplePlugin.csproj` installed (see CI workflow for the version currently targeted).
 
-## How To Use
+## Building
 
-### Getting Started
+```
+dotnet build --configuration Release
+```
 
-To begin, [clone this template repository][new-repo] to your own GitHub account. This will automatically bring in everything you need to get a jumpstart on development. You do not need to fork this repository unless you intend to contribute modifications to it.
+Output DLL: `SamplePlugin/bin/x64/Release/SamplePlugin.dll` (or `Debug` for a debug build).
 
-Be sure to also check out the [Dalamud Developer Docs][dalamud-docs] for helpful information about building your own plugin. The Developer Docs includes helpful information about all sorts of things, including [how to submit][submit] your newly-created plugin to the official repository. Assuming you use this template repository, the provided project build configuration and license are already chosen to make everything a breeze.
+## Loading in-game
 
-[new-repo]: https://github.com/new?template_name=SamplePlugin&template_owner=goatcorp
-[dalamud-docs]: https://dalamud.dev
-[submit]: https://dalamud.dev/plugin-publishing/submission
+1. `/xlsettings` → `Experimental` → add the full path to the built `SamplePlugin.dll` under Dev Plugin Locations (one-time).
+2. `/xlplugins` → `Dev Tools > Installed Dev Plugins` → enable `SamplePlugin`.
 
-### Prerequisites
+See the [template reference doc](docs/SAMPLEPLUGIN_TEMPLATE.md) for more detail on this flow.
 
-SamplePlugin assumes all the following prerequisites are met:
+## Development Notes
 
-* XIVLauncher, FINAL FANTASY XIV, and Dalamud have all been installed and the game has been run with Dalamud at least once.
-* XIVLauncher is installed to its default directories and configurations.
-  * If a custom path is required for Dalamud's dev directory, it must be set with the `DALAMUD_HOME` environment variable.
-* A .NET Core 8 SDK has been installed and configured, or is otherwise available. (In most cases, the IDE will take care of this.)
+<!-- Architecture decisions, gotchas, links to design docs, etc. go here as the plugin grows. -->
 
-### Building
+## Roadmap / TODO
 
-1. Open up `SamplePlugin.sln` in your C# editor of choice (likely [Visual Studio](https://visualstudio.microsoft.com) or [JetBrains Rider](https://www.jetbrains.com/rider/)).
-2. Build the solution. By default, this will build a `Debug` build, but you can switch to `Release` in your IDE.
-3. The resulting plugin can be found at `SamplePlugin/bin/x64/Debug/SamplePlugin.dll` (or `Release` if appropriate.)
-
-### Activating in-game
-
-1. Launch the game and use `/xlsettings` in chat or `xlsettings` in the Dalamud Console to open up the Dalamud settings.
-    * In here, go to `Experimental`, and add the full path to the `SamplePlugin.dll` to the list of Dev Plugin Locations.
-2. Next, use `/xlplugins` (chat) or `xlplugins` (console) to open up the Plugin Installer.
-    * In here, go to `Dev Tools > Installed Dev Plugins`, and the `SamplePlugin` should be visible. Enable it.
-3. You should now be able to use `/pmycommand` (chat) or `pmycommand` (console)!
-
-Note that you only need to add it to the Dev Plugin Locations once (Step 1); it is preserved afterwards. You can disable, enable, or load your plugin on startup through the Plugin Installer.
-
-### Reconfiguring for your own uses
-
-Replace all references to `SamplePlugin` in all the files and filenames with your desired name, then start building the plugin of your dreams. You'll figure it out 😁
-
-Dalamud will load the JSON file (by default, `SamplePlugin/SamplePlugin.json`) next to your DLL and use it for metadata, including the description for your plugin in the Plugin Installer. Make sure to update this with information relevant to _your_ plugin!
-
-All participation in this repository is governed by our [Code of Conduct](https://dalamud.dev/code-of-conduct). If you used AI tooling at any point, review the [AI Usage Policy](https://dalamud.dev/plugin-publishing/ai-policy) and disclose your level of AI use. Entirely AI-generated submissions will be rejected, and undisclosed AI use may result in a ban.
+<!-- Track planned features here, or link out to an issue tracker. -->
