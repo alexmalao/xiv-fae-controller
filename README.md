@@ -19,6 +19,7 @@ Clockspot Targeting:
 - In Big Picture Mode, navigate to XIVLauncher or Final Fantasy XIV (if owned on Steam) and open controller settings
 - Edit the button layout and navigate to Trackpads and click the settings button on either trackpad
 - Set the Menu Type to Radial Menu and add eight buttons, in order from numpad/keypad 1-8 (N clockwise to NW)
+- (Optional) add icons for the steam button overlay to better match clock spot roles
 - In game, unbind any keybinds using Numpad 1-8 (default key for soft targetting)
 
    | Steam Controller direction | Keyboard key to bind | Clock position |
