@@ -35,16 +35,18 @@ public class ClockSpotsWindow : Window, IDisposable
 
     public override void Draw()
     {
-        var slotSize = new Vector2(64, 64) * ImGuiHelpers.GlobalScale;
-        var spacing = 12f * ImGuiHelpers.GlobalScale;
-        var stride = slotSize.X + spacing;
+        var iconSize = new Vector2(64, 64) * ImGuiHelpers.GlobalScale;
+        var nameAreaWidth = 36f * ImGuiHelpers.GlobalScale;
+        var cellGap = 12f * ImGuiHelpers.GlobalScale;
+        var colStride = iconSize.X + ImGui.GetStyle().ItemSpacing.X + nameAreaWidth + cellGap;
+        var rowStride = iconSize.Y + cellGap;
         var origin = ImGui.GetCursorPos();
 
         for (var i = 0; i < GridSlots.Length; i++)
         {
             var row = i / 3;
             var col = i % 3;
-            var pos = origin + new Vector2(col * stride, row * stride);
+            var pos = origin + new Vector2(col * colStride, row * rowStride);
             var slotIndex = GridSlots[i];
 
             if (slotIndex < 0)
@@ -53,13 +55,13 @@ public class ClockSpotsWindow : Window, IDisposable
                 continue;
             }
 
-            DrawSlot(slotIndex, pos, slotSize);
+            DrawSlot(slotIndex, pos, iconSize);
         }
 
-        ImGui.SetCursorPos(origin + new Vector2(0, stride * 3));
+        ImGui.SetCursorPos(origin + new Vector2(0, rowStride * 3));
     }
 
-    private void DrawSlot(int slotIndex, Vector2 pos, Vector2 slotSize)
+    private void DrawSlot(int slotIndex, Vector2 pos, Vector2 iconSize)
     {
         ImGui.SetCursorPos(pos);
         ImGui.PushID($"ClockSpot{slotIndex}");
@@ -69,11 +71,11 @@ public class ClockSpotsWindow : Window, IDisposable
         if (member is { } occupied)
         {
             var icon = Plugin.TextureProvider.GetFromGameIcon(new GameIconLookup(JobIconBaseId + occupied.ClassJobId)).GetWrapOrEmpty();
-            ImGui.ImageButton(icon.Handle, slotSize);
+            ImGui.ImageButton(icon.Handle, iconSize);
         }
         else
         {
-            ImGui.Button("##empty", slotSize);
+            ImGui.Button("##empty", iconSize);
         }
 
         if (ImGui.BeginDragDropSource())
@@ -100,10 +102,12 @@ public class ClockSpotsWindow : Window, IDisposable
             ImGui.EndDragDropTarget();
         }
 
+        // Job icon on the left, name initials to the right of it.
+        ImGui.SameLine();
+        ImGui.AlignTextToFramePadding();
+
         if (member is { } labeled)
         {
-            var textSize = ImGui.CalcTextSize(labeled.Abbreviation, false, -1f);
-            ImGui.SetCursorPos(pos + new Vector2((slotSize.X - textSize.X) / 2f, slotSize.Y));
             ImGui.Text(labeled.Abbreviation);
         }
 
