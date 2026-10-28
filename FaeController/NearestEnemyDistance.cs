@@ -40,7 +40,7 @@ public unsafe class NearestEnemyDistance : IDisposable
 
     private void OnNamePlatePreDraw(AddonEvent type, AddonArgs args)
     {
-        var addon = (AddonNamePlate*)args.Addon;
+        var addon = (AddonNamePlate*)args.Addon.Address;
         if (addon == null) return;
 
         if (!configuration.EnableNearestEnemyDistance)
@@ -65,10 +65,12 @@ public unsafe class NearestEnemyDistance : IDisposable
             return;
         }
 
-        for (var i = 0; i < addon->ActiveNamePlateCount && i < MaxNameplates; i++)
+        var activeCount = raptureModule->NameplateInfoCount;
+
+        for (var i = 0; i < activeCount && i < MaxNameplates; i++)
         {
-            var info = &raptureModule->NamePlateInfoEntries[i];
-            var isTarget = info->ObjectId.ObjectId == (uint)target.GameObjectId;
+            ref var info = ref raptureModule->NamePlateInfoEntries[i];
+            var isTarget = info.ObjectId.ObjectId == (uint)target.GameObjectId;
 
             if (isTarget && nearestDistance < float.MaxValue)
             {
@@ -80,7 +82,7 @@ public unsafe class NearestEnemyDistance : IDisposable
             }
         }
 
-        for (var i = addon->ActiveNamePlateCount; i < MaxNameplates; i++)
+        for (var i = activeCount; i < MaxNameplates; i++)
             HideNode(i);
     }
 
@@ -94,7 +96,7 @@ public unsafe class NearestEnemyDistance : IDisposable
             if (obj.GameObjectId == currentTarget.GameObjectId)
                 continue;
 
-            if (obj is not IBattleNpc npc || npc.BattleNpcKind != BattleNpcKind.Enemy)
+            if (obj is not IBattleNpc npc || npc.BattleNpcKind != BattleNpcSubKind.Combatant)
                 continue;
 
             var dx = targetPos.X - obj.Position.X;
@@ -174,7 +176,7 @@ public unsafe class NearestEnemyDistance : IDisposable
         textNode->EdgeColor.G = 0;
         textNode->EdgeColor.B = 0;
         textNode->EdgeColor.A = 200;
-        textNode->TextFlags = (byte)TextFlags.Edge;
+        textNode->TextFlags = TextFlags.Edge;
 
         var nameplateObject = &addon->NamePlateObjectArray[index];
         var componentNode = nameplateObject->RootComponentNode;

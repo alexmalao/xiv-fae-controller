@@ -94,7 +94,7 @@ public unsafe class KaitenRestoration : IDisposable
             return;
         }
 
-        module->SetAndSaveSlot((uint)(hotbarNumber - 1), 0, HotbarSlotType.Action, KaitenActionId);
+        module->SetAndSaveSlot((uint)(hotbarNumber - 1), 0, RaptureHotbarModule.HotbarSlotType.Action, KaitenActionId);
         Plugin.ChatGui.Print($"Kaiten placed on hotbar {hotbarNumber}, slot 1.");
     }
 }
