@@ -27,13 +27,16 @@ can be rearranged by dragging one slot onto another to swap them. A chat message
 clickable "clockspots" link also appears automatically when entering an instance with 2+ party
 members.
 
-### Clock spot soft-targeting (controller, zero in-game setup)
+### Clock spot targeting (controller, zero in-game setup)
 
 The plugin polls Numpad1 through Numpad8 directly every frame (via Dalamud's raw keyboard-state
-service) and soft-targets whoever currently occupies the matching clock position the instant one
-of those keys is pressed — numbered 1 (North) through 8 (Northwest), clockwise. This is read live
+service) and targets whoever currently occupies the matching clock position the instant one of
+those keys is pressed — numbered 1 (North) through 8 (Northwest), clockwise. This is read live
 from the clock spot board at the moment the key is pressed, so it always reflects the board's
 current state, including any manual drag-and-drop rearrangement.
+
+By default this soft-targets (same as mouseover/soft-target). Check "Hard target clock spots" in
+`/faecontrols` to hard target instead.
 
 **Setup is just the Steam Controller side — nothing to configure in FFXIV itself:**
 

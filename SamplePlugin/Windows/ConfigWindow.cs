@@ -17,7 +17,7 @@ public class ConfigWindow : Window, IDisposable
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
                 ImGuiWindowFlags.NoScrollWithMouse;
 
-        Size = new Vector2(232, 90);
+        Size = new Vector2(350, 170);
         SizeCondition = ImGuiCond.Always;
 
         configuration = plugin.Configuration;
@@ -55,5 +55,24 @@ public class ConfigWindow : Window, IDisposable
             configuration.IsConfigWindowMovable = movable;
             configuration.Save();
         }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var hardTarget = configuration.HardTargetClockSpots;
+        if (ImGui.Checkbox("Hard target clock spots", ref hardTarget))
+        {
+            configuration.HardTargetClockSpots = hardTarget;
+            configuration.Save();
+        }
+
+        ImGui.TextWrapped(
+            "When checked, Numpad 1-8 will hard target the matching clock spot instead of soft targeting it.");
+
+        ImGui.Spacing();
+        ImGui.TextColored(
+            new Vector4(1f, 0.82f, 0.2f, 1f),
+            "NOTE: make sure to unbind Numpad 1-8 so the keybind inputs do not input with the plugin");
     }
 }

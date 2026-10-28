@@ -148,7 +148,15 @@ public sealed class Plugin : IDalamudPlugin
             // Only react on the press edge, not every frame the key is held down.
             if (isDown && !clockSpotKeyWasDown[i])
             {
-                TargetManager.SoftTarget = ClockSpotsWindow.ResolveSlotTarget(i);
+                var target = ClockSpotsWindow.ResolveSlotTarget(i);
+                if (Configuration.HardTargetClockSpots)
+                {
+                    TargetManager.Target = target;
+                }
+                else
+                {
+                    TargetManager.SoftTarget = target;
+                }
             }
 
             clockSpotKeyWasDown[i] = isDown;
