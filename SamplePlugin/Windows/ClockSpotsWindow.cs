@@ -19,6 +19,18 @@ public class ClockSpotsWindow : Window, IDisposable
     // Slot indices run clockwise from the top: 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW.
     private static readonly int[] GridSlots = { 7, 0, 1, 6, -1, 2, 5, 4, 3 };
 
+    // Default light-party (4 or fewer members) cardinal assignments: tank north, healer west,
+    // the first-listed DPS south, and the second-listed DPS east.
+    private const int LightPartySize = 4;
+    private const int TankSlot = 0;
+    private const int FirstDpsSlot = 4;
+    private const int SecondDpsSlot = 2;
+    private const int HealerSlot = 6;
+
+    // ClassJob row ids for the current tank and healer jobs; anything else counts as DPS.
+    private static readonly HashSet<uint> TankJobIds = new() { 19, 21, 32, 37 };
+    private static readonly HashSet<uint> HealerJobIds = new() { 24, 28, 33, 40 };
+
     private readonly ClockSpotMember?[] members = new ClockSpotMember?[SlotCount];
 
     private int draggedSlot = -1;
@@ -124,7 +136,7 @@ public class ClockSpotsWindow : Window, IDisposable
         (members[a], members[b]) = (members[b], members[a]);
     }
 
-    private void SyncPartyMembers()
+    public void SyncPartyMembers()
     {
         var current = GetCurrentMembers().ToList();
 
@@ -137,22 +149,182 @@ public class ClockSpotsWindow : Window, IDisposable
             }
         }
 
-        // Keep already-placed members where they are; seat newcomers in the first open slot.
-        foreach (var member in current)
+        var newcomers = current.Where(c => members.All(m => m?.Id != c.Id)).ToList();
+        if (newcomers.Count == 0)
         {
-            if (members.Any(m => m?.Id == member.Id))
-            {
-                continue;
-            }
+            return;
+        }
 
-            var emptySlot = Array.IndexOf(members, null);
-            if (emptySlot < 0)
+        if (current.Count <= LightPartySize)
+        {
+            SeatLightParty(current, newcomers);
+        }
+        else
+        {
+            SeatGeneric(newcomers);
+        }
+    }
+
+    private void SeatGeneric(List<ClockSpotMember> newcomers)
+    {
+        foreach (var member in newcomers)
+        {
+            var slot = FindFirstEmptySlot();
+            if (slot < 0)
             {
                 break;
             }
 
-            members[emptySlot] = member;
+            members[slot] = member;
         }
+    }
+
+    // One tank and one healer (the "supports") always take their cardinal slot when present.
+    // Everyone else ("the rest" - extra supports plus all DPS) fills the remaining slots as
+    // best as possible, in party-list order, with the last of them always reserved for East.
+    private void SeatLightParty(List<ClockSpotMember> current, List<ClockSpotMember> newcomers)
+    {
+        // Within light-party seating, the local player is always treated as first in
+        // party-list order for priority purposes, regardless of where IPartyList places them.
+        current = WithLocalPlayerFirst(current);
+
+        var newcomerIds = newcomers.Select(m => m.Id).ToHashSet();
+
+        if (current.Count == 1)
+        {
+            // Solo in an instance: always seat north, regardless of role.
+            var solo = current[0];
+            if (newcomerIds.Contains(solo.Id))
+            {
+                var slot = members[TankSlot] is null ? TankSlot : FindFirstEmptySlot();
+                if (slot >= 0)
+                {
+                    members[slot] = solo;
+                }
+            }
+
+            return;
+        }
+
+        ClockSpotMember? tank = null;
+        ClockSpotMember? healer = null;
+        var rest = new List<ClockSpotMember>();
+
+        foreach (var member in current)
+        {
+            switch (GetRole(member.ClassJobId))
+            {
+                case Role.Tank when tank is null:
+                    tank = member;
+                    break;
+                case Role.Healer when healer is null:
+                    healer = member;
+                    break;
+                default:
+                    rest.Add(member);
+                    break;
+            }
+        }
+
+        SeatSupport(tank, TankSlot, newcomerIds);
+        SeatSupport(healer, HealerSlot, newcomerIds);
+
+        var lastRestId = rest.Count > 0 ? rest[^1].Id : (ulong?)null;
+
+        foreach (var member in rest)
+        {
+            if (!newcomerIds.Contains(member.Id))
+            {
+                continue;
+            }
+
+            int slot;
+            if (member.Id == lastRestId)
+            {
+                // The last of "the rest" is always reserved for East.
+                slot = members[SecondDpsSlot] is null ? SecondDpsSlot : FindFirstEmptySlot();
+            }
+            else
+            {
+                slot = members[FirstDpsSlot] is null ? FirstDpsSlot : FindFirstEmptySlot(SecondDpsSlot);
+            }
+
+            if (slot < 0)
+            {
+                continue;
+            }
+
+            members[slot] = member;
+        }
+    }
+
+    private void SeatSupport(ClockSpotMember? support, int cardinalSlot, HashSet<ulong> newcomerIds)
+    {
+        if (support is null || !newcomerIds.Contains(support.Id))
+        {
+            return;
+        }
+
+        var slot = members[cardinalSlot] is null ? cardinalSlot : FindFirstEmptySlot();
+        if (slot >= 0)
+        {
+            members[slot] = support;
+        }
+    }
+
+    private static List<ClockSpotMember> WithLocalPlayerFirst(List<ClockSpotMember> current)
+    {
+        if (!Plugin.PlayerState.IsLoaded)
+        {
+            return current;
+        }
+
+        var localIndex = current.FindIndex(m => m.Id == Plugin.PlayerState.ContentId);
+        if (localIndex <= 0)
+        {
+            return current;
+        }
+
+        var reordered = new List<ClockSpotMember>(current);
+        var local = reordered[localIndex];
+        reordered.RemoveAt(localIndex);
+        reordered.Insert(0, local);
+        return reordered;
+    }
+
+    private int FindFirstEmptySlot(int? excludeSlot = null)
+    {
+        for (var i = 0; i < members.Length; i++)
+        {
+            if (i != excludeSlot && members[i] is null)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private enum Role
+    {
+        Tank,
+        Healer,
+        Dps,
+    }
+
+    private static Role GetRole(uint classJobId)
+    {
+        if (TankJobIds.Contains(classJobId))
+        {
+            return Role.Tank;
+        }
+
+        if (HealerJobIds.Contains(classJobId))
+        {
+            return Role.Healer;
+        }
+
+        return Role.Dps;
     }
 
     private static IEnumerable<ClockSpotMember> GetCurrentMembers()

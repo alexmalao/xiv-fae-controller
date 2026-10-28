@@ -121,8 +121,16 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnTerritoryChanged(uint territoryId)
     {
-        // Only prompt when we've actually zoned into an instanced duty with at least one other party member
-        if (!Condition[ConditionFlag.BoundByDuty] || PartyList.Length < 2)
+        if (!Condition[ConditionFlag.BoundByDuty])
+        {
+            return;
+        }
+
+        // Refresh the clock spot board as soon as we zone into any instance, whether solo or partied.
+        ClockSpotsWindow.SyncPartyMembers();
+
+        // Only prompt in chat when there's at least one other party member to set clock spots with
+        if (PartyList.Length < 2)
         {
             return;
         }
