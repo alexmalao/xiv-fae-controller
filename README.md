@@ -27,7 +27,7 @@ can be rearranged by dragging one slot onto another to swap them. A chat message
 clickable "clockspots" link also appears automatically when entering an instance with 2+ party
 members.
 
-### Clock spot targeting (controller, zero in-game setup)
+### Clock spot targeting (controller)
 
 The plugin polls Numpad1 through Numpad8 directly every frame (via Dalamud's raw keyboard-state
 service) and targets whoever currently occupies the matching clock position the instant one of
@@ -38,11 +38,12 @@ current state, including any manual drag-and-drop rearrangement.
 By default this soft-targets (same as mouseover/soft-target). Check "Hard target clock spots" in
 `/faecontrols` to hard target instead.
 
-**Setup is just the Steam Controller side — nothing to configure in FFXIV itself:**
+**Setup:**
 
-1. In your Steam Controller configuration, map each radial/direction to a **keyboard key press**
+1. In FFXIV's own keybind settings, **unbind Numpad1 through Numpad8** from whatever they're
+   currently assigned to by default — see the caveat below for why this matters.
+2. In your Steam Controller configuration, map each radial/direction to a **keyboard key press**
    (not an in-game action), using the table below.
-2. That's it. No macros, no hotbar slots, no FFXIV keybind changes.
 
    | Steam Controller direction | Keyboard key to bind | Clock position |
    |---|---|---|
@@ -55,11 +56,14 @@ By default this soft-targets (same as mouseover/soft-target). Check "Hard target
    | West | Numpad 7 | West |
    | Northwest | Numpad 8 | Northwest |
 
+No macros or hotbar slots are needed either way — that's the part Dalamud's raw keyboard-state
+service avoids.
+
 **Caveat:** Dalamud reads these keys directly off the keyboard-state buffer rather than hooking
 into FFXIV's own keybind system, since plugins have no API to rebind that. Reading doesn't
-suppress the keypress from the game, so if Numpad1-8 are *also* bound to something in your FFXIV
-keybind settings, that action will fire too. Leaving Numpad1-8 unbound in FFXIV avoids this
-(they're unbound by default).
+suppress the keypress from the game, so if Numpad1-8 are bound to something in your FFXIV keybind
+settings — which they are by default — that action will fire too, alongside the plugin's clock
+spot targeting. Unbinding them in FFXIV (step 1 above) is required to avoid this.
 
 ## Prerequisites
 
