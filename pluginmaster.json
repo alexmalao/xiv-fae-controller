@@ -1,14 +1,17 @@
 [
   {
     "Author": "Fae Nightwolf",
-    "Name": "Fae Nightwolf's Controller Additions",
-    "Punchline": "Clock spot coordination and controller-based clock spot targeting.",
+    "Name": "Fae Nightwolf's Alteration Shop",
+    "Punchline": "Collection of QoL and Steam Controller clockspot targeting support.",
     "Description": "Seats your party into clock spot positions to support controller radial clockspot targeting.",
     "Tags": [
       "party",
       "targeting",
       "utility",
-      "steamcontroller"
+      "steamcontroller",
+      "buffering",
+      "autoattacks",
+      "kaiten"
     ],
     "InternalName": "FaeController",
     "RepoUrl": "https://github.com/alexmalao/xiv-fae-controller",
