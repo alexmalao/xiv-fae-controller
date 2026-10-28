@@ -15,6 +15,7 @@ public class Configuration : IPluginConfiguration
     public bool EnableDisableAutoAttackOnPull { get; set; } = false;
     public bool EnableNearestEnemyDistance { get; set; } = false;
     public bool EnableKaitenRestoration { get; set; } = false;
+    public bool EnableMitSheetHelper { get; set; } = false;
     public int UntargetableBufferMs { get; set; } = 500;
     public bool HardTargetClockSpots { get; set; } = false;
     public bool LockClockSpotsWindowOnClose { get; set; } = false;

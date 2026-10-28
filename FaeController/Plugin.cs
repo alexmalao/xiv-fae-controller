@@ -11,6 +11,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Plugin.Services;
 using Dalamud.Hooking;
+using FaeController.MitSheet;
 using FaeController.Windows;
 
 namespace FaeController;
@@ -38,9 +39,11 @@ public sealed class Plugin : IDalamudPlugin
     private const string ConfigCommandName = "/faeconfig";
     private const string ClockSpotsCommandName = "/faeclocks";
     private const string KaitenCommandName = "/faekaiten";
+    private const string MitHelperCommandName = "/faemithelper";
 
     // Arbitrary id used to register our "clockspots" chat link handler with Dalamud.
     private const uint ClockSpotsLinkCommandId = 1;
+    private const uint MitHelperLinkCommandId = 2;
 
     // Numpad1-8, clockwise from North, polled directly so a Steam Controller (or any input
     // remapper) can be bound straight to these keys with no in-game macro/hotbar setup at all.
@@ -58,12 +61,15 @@ public sealed class Plugin : IDalamudPlugin
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
     private ClockSpotsWindow ClockSpotsWindow { get; init; }
+    private MitSheetWindow MitSheetWindow { get; init; }
 
     private readonly UntargetableBuffering untargetableBuffering;
     private readonly AutoAttackSuppression autoAttackSuppression;
     private readonly NearestEnemyDistance nearestEnemyDistance;
     private readonly KaitenRestoration kaitenRestoration;
+    private readonly MitSheetService mitSheetService;
     private readonly DalamudLinkPayload clockSpotsLinkPayload;
+    private readonly DalamudLinkPayload mitHelperLinkPayload;
 
     public Plugin()
     {
@@ -73,19 +79,22 @@ public sealed class Plugin : IDalamudPlugin
         autoAttackSuppression = new AutoAttackSuppression(Configuration, GameInterop);
         nearestEnemyDistance = new NearestEnemyDistance(Configuration, AddonLifecycle);
         kaitenRestoration = new KaitenRestoration(Configuration, GameInterop);
+        mitSheetService = new MitSheetService();
 
-        // You might normally want to embed resources and load them from the manifest stream
         var faeImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "fae.png");
 
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this, faeImagePath);
         ClockSpotsWindow = new ClockSpotsWindow(Configuration);
+        MitSheetWindow = new MitSheetWindow(Configuration, mitSheetService);
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(ClockSpotsWindow);
+        WindowSystem.AddWindow(MitSheetWindow);
 
         clockSpotsLinkPayload = ChatGui.AddChatLinkHandler(ClockSpotsLinkCommandId, OnClockSpotsLinkClicked);
+        mitHelperLinkPayload = ChatGui.AddChatLinkHandler(MitHelperLinkCommandId, OnMitHelperLinkClicked);
 
         CommandManager.AddHandler(ConfigCommandName, new CommandInfo(OnCommand)
         {
@@ -100,6 +109,11 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.AddHandler(KaitenCommandName, new CommandInfo(OnKaitenCommand)
         {
             HelpMessage = "Places Kaiten on the specified hotbar. Usage: /faekaiten <hotbar_number>"
+        });
+
+        CommandManager.AddHandler(MitHelperCommandName, new CommandInfo(OnMitHelperCommand)
+        {
+            HelpMessage = "Opens the mit sheet helper window."
         });
 
         // Tell the UI system that we want our windows to be drawn through the window system
@@ -145,12 +159,15 @@ public sealed class Plugin : IDalamudPlugin
         autoAttackSuppression.Dispose();
         nearestEnemyDistance.Dispose();
         kaitenRestoration.Dispose();
+        mitSheetService.Dispose();
 
         CommandManager.RemoveHandler(ConfigCommandName);
         CommandManager.RemoveHandler(ClockSpotsCommandName);
         CommandManager.RemoveHandler(KaitenCommandName);
+        CommandManager.RemoveHandler(MitHelperCommandName);
 
         ChatGui.RemoveChatLinkHandler(ClockSpotsLinkCommandId);
+        ChatGui.RemoveChatLinkHandler(MitHelperLinkCommandId);
     }
 
     private void OnCommand(string command, string args)
@@ -213,37 +230,53 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnTerritoryChanged(uint territoryId)
     {
-        if (!Configuration.EnableClockSpotTargeting)
-            return;
-
-        if (!Condition[ConditionFlag.BoundByDuty])
+        if (Configuration.EnableClockSpotTargeting && Condition[ConditionFlag.BoundByDuty])
         {
-            return;
+            ClockSpotsWindow.SyncPartyMembers();
+
+            if (PartyList.Length >= 2)
+            {
+                var message = new SeStringBuilder()
+                    .AddText("Setup party member ")
+                    .Add(clockSpotsLinkPayload)
+                    .AddUiForeground(500)
+                    .AddText("clockspots")
+                    .AddUiForegroundOff()
+                    .Add(RawPayload.LinkTerminator)
+                    .AddText(".")
+                    .Build();
+
+                ChatGui.Print(new XivChatEntry { Message = message });
+            }
         }
 
-        // Refresh the clock spot board as soon as we zone into any instance, whether solo or partied.
-        ClockSpotsWindow.SyncPartyMembers();
-
-        // Only prompt in chat when there's at least one other party member to set clock spots with
-        if (PartyList.Length < 2)
+        if (Configuration.EnableMitSheetHelper)
         {
-            return;
+            var fightIdx = MitSheetService.GetFightIndexForTerritory(territoryId);
+            if (fightIdx >= 0)
+            {
+                var fight = MitSheetService.Fights[fightIdx];
+                MitSheetWindow.SelectFightForTerritory(territoryId);
+
+                var message = new SeStringBuilder()
+                    .AddText($"Entering {fight.Name}, click to open ")
+                    .Add(mitHelperLinkPayload)
+                    .AddUiForeground(500)
+                    .AddText("FMBG")
+                    .AddUiForegroundOff()
+                    .Add(RawPayload.LinkTerminator)
+                    .AddText(".")
+                    .Build();
+
+                ChatGui.Print(new XivChatEntry { Message = message });
+            }
         }
-
-        var message = new SeStringBuilder()
-            .AddText("Setup party member ")
-            .Add(clockSpotsLinkPayload)
-            .AddUiForeground(500)
-            .AddText("clockspots")
-            .AddUiForegroundOff()
-            .Add(RawPayload.LinkTerminator)
-            .AddText(".")
-            .Build();
-
-        ChatGui.Print(new XivChatEntry { Message = message });
     }
 
+    private void OnMitHelperCommand(string command, string args) => MitSheetWindow.Open();
+
     private void OnClockSpotsLinkClicked(uint commandId, SeString args) => ClockSpotsWindow.Open();
+    private void OnMitHelperLinkClicked(uint commandId, SeString args) => MitSheetWindow.Open();
 
     public void ToggleConfigUi() => ConfigWindow.Toggle();
     public void ToggleMainUi() => MainWindow.Toggle();

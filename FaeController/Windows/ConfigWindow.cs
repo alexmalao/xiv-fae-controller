@@ -201,5 +201,19 @@ public class ConfigWindow : Window, IDisposable
 
         ImGui.TextWrapped(
             "Replaces Kaiten's action with Shinten so you can use Kaiten from your hotbar again. The button will show Kaiten but execute Shinten.");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var mitSheet = configuration.EnableMitSheetHelper;
+        if (ImGui.Checkbox("Enable Mit Sheet Helper", ref mitSheet))
+        {
+            configuration.EnableMitSheetHelper = mitSheet;
+            configuration.Save();
+        }
+
+        ImGui.TextWrapped(
+            "Loads mitigation assignments from a published Google Sheet and displays them in an in-game window.");
     }
 }
