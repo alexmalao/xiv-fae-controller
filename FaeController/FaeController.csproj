@@ -4,7 +4,7 @@
     <Version>0.0.0.1</Version>
     <!-- Manifest fields (see https://github.com/goatcorp/DalamudPackager/blob/827d88dc/DalamudPackager/DalamudPackager.cs#L420) -->
     <Author>Fae Nightwolf</Author>
-    <Name>Fae Nightwolf's Controller Additions</Name>
+    <Name>Fae Nightwolf's Alteration Shop</Name>
     <Punchline>Clock spot coordination and controller-based clock spot targeting.</Punchline>
     <Description>Automatically seats your party into clock spot positions (with role priority and
 encounter-specific layouts for FRU and TOP), lets you rearrange them by dragging slots, and
