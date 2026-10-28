@@ -159,5 +159,32 @@ public class ConfigWindow : Window, IDisposable
             ImGui.EndDisabled();
         }
 
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var disableAutoAttack = configuration.EnableDisableAutoAttackOnPull;
+        if (ImGui.Checkbox("Disable auto-attacks on encounter start", ref disableAutoAttack))
+        {
+            configuration.EnableDisableAutoAttackOnPull = disableAutoAttack;
+            configuration.Save();
+        }
+
+        ImGui.TextWrapped(
+            "Suppresses auto-attacks when initiating combat, so aggro is determined by the action's damage application delay rather than an instant auto-attack hit.");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var nearestEnemy = configuration.EnableNearestEnemyDistance;
+        if (ImGui.Checkbox("Show distance to nearest enemy", ref nearestEnemy))
+        {
+            configuration.EnableNearestEnemyDistance = nearestEnemy;
+            configuration.Save();
+        }
+
+        ImGui.TextWrapped(
+            "Displays the distance from your current target to the nearest enemy's hitbox ring on the target's nameplate. Green if within 5y AoE range.");
     }
 }

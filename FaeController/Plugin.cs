@@ -8,6 +8,7 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using System.IO;
 using Dalamud.Interface.Windowing;
+using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Plugin.Services;
 using Dalamud.Hooking;
 using FaeController.Windows;
@@ -31,6 +32,8 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
+    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
+    [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
 
     private const string ConfigCommandName = "/faeconfig";
     private const string ClockSpotsCommandName = "/faeclocks";
@@ -56,6 +59,8 @@ public sealed class Plugin : IDalamudPlugin
     private ClockSpotsWindow ClockSpotsWindow { get; init; }
 
     private readonly UntargetableBuffering untargetableBuffering;
+    private readonly AutoAttackSuppression autoAttackSuppression;
+    private readonly NearestEnemyDistance nearestEnemyDistance;
     private readonly DalamudLinkPayload clockSpotsLinkPayload;
 
     public Plugin()
@@ -63,6 +68,8 @@ public sealed class Plugin : IDalamudPlugin
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         untargetableBuffering = new UntargetableBuffering(Configuration, GameInterop);
+        autoAttackSuppression = new AutoAttackSuppression(Configuration, GameInterop);
+        nearestEnemyDistance = new NearestEnemyDistance(Configuration, AddonLifecycle);
 
         // You might normally want to embed resources and load them from the manifest stream
         var faeImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "fae.png");
@@ -127,6 +134,8 @@ public sealed class Plugin : IDalamudPlugin
         ClockSpotsWindow.Dispose();
 
         untargetableBuffering.Dispose();
+        autoAttackSuppression.Dispose();
+        nearestEnemyDistance.Dispose();
 
         CommandManager.RemoveHandler(ConfigCommandName);
         CommandManager.RemoveHandler(ClockSpotsCommandName);
@@ -150,6 +159,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnFrameworkUpdate(IFramework framework)
     {
         untargetableBuffering.Update();
+        autoAttackSuppression.Update();
 
         if (!Configuration.EnableClockSpotTargeting)
             return;
