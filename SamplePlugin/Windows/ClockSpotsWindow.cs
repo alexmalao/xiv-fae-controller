@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
@@ -191,6 +192,40 @@ public class ClockSpotsWindow : Window, IDisposable
         {
             SeatGeneric(newcomers);
         }
+    }
+
+    // Looks up whoever currently occupies the given slot and resolves them to a live game
+    // object, so a soft-target command always reflects whatever the board currently shows --
+    // there's no separate "remap" step needed, since this is read live at call time.
+    public IGameObject? ResolveSlotTarget(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= members.Length)
+        {
+            return null;
+        }
+
+        var member = members[slotIndex];
+        if (member is null)
+        {
+            return null;
+        }
+
+        if (Plugin.PartyList.Length > 0)
+        {
+            foreach (var partyMember in Plugin.PartyList)
+            {
+                if (partyMember.ContentId == member.Id)
+                {
+                    return partyMember.GameObject;
+                }
+            }
+
+            return null;
+        }
+
+        return Plugin.PlayerState.IsLoaded && Plugin.PlayerState.ContentId == member.Id
+            ? Plugin.ObjectTable.LocalPlayer
+            : null;
     }
 
     private void SeatGeneric(List<ClockSpotMember> newcomers)

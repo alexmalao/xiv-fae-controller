@@ -24,9 +24,12 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICondition Condition { get; private set; } = null!;
     [PluginService] internal static IPartyList PartyList { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
+    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
+    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
 
     private const string CommandName = "/faecontrols";
     private const string ClockSpotsCommandName = "/faeclocks";
+    private const string ClockTargetCommandName = "/faeclocktarget";
 
     // Arbitrary id used to register our "clockspots" chat link handler with Dalamud.
     private const uint ClockSpotsLinkCommandId = 1;
@@ -67,6 +70,11 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Opens the party clock spots window."
         });
 
+        CommandManager.AddHandler(ClockTargetCommandName, new CommandInfo(OnClockTargetCommand)
+        {
+            HelpMessage = "Soft-targets whoever currently occupies clock position 1 (North) through 8 (Northwest), clockwise."
+        });
+
         // Tell the UI system that we want our windows to be drawn through the window system
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
 
@@ -103,6 +111,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.RemoveHandler(CommandName);
         CommandManager.RemoveHandler(ClockSpotsCommandName);
+        CommandManager.RemoveHandler(ClockTargetCommandName);
 
         ChatGui.RemoveChatLinkHandler(ClockSpotsLinkCommandId);
     }
@@ -117,6 +126,18 @@ public sealed class Plugin : IDalamudPlugin
     {
         // Always open (rather than toggle) so this is a reliable way to bring the window back up
         ClockSpotsWindow.IsOpen = true;
+    }
+
+    private void OnClockTargetCommand(string command, string args)
+    {
+        if (!int.TryParse(args.Trim(), out var position) || position is < 1 or > 8)
+        {
+            Log.Warning($"{ClockTargetCommandName} expects a clock position from 1 (North) to 8 (Northwest), got \"{args}\".");
+            return;
+        }
+
+        // Clock positions are 1-indexed clockwise from North; slots are the same, 0-indexed.
+        TargetManager.SoftTarget = ClockSpotsWindow.ResolveSlotTarget(position - 1);
     }
 
     private void OnTerritoryChanged(uint territoryId)
