@@ -1,0 +1,21 @@
+[
+  {
+    "Author": "Fae Nightwolf",
+    "Name": "Fae Nightwolf's Controller Additions",
+    "Punchline": "Clock spot coordination and controller-based clock spot targeting.",
+    "Description": "Automatically seats your party into clock spot positions (with role priority and encounter-specific layouts for FRU and TOP), lets you rearrange them by dragging slots, and prompts the party with a clickable link when entering an instance. Numpad1-8 can be bound to a controller to soft/hard target whoever is standing at a given clock position.",
+    "Tags": [
+      "party",
+      "targeting",
+      "utility"
+    ],
+    "InternalName": "FaeController",
+    "RepoUrl": "https://github.com/alexmalao/xiv-fae-controller",
+    "LastUpdate": 1793161034,
+    "DownloadLinkInstall": "https://github.com/alexmalao/xiv-fae-controller/releases/latest/download/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/alexmalao/xiv-fae-controller/releases/latest/download/latest.zip",
+    "AssemblyVersion": "0.0.0.1",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": "15"
+  }
+]

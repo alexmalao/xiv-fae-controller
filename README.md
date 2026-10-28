@@ -12,7 +12,13 @@ Clockspot Targeting:
 
 ### Installation
 
-<!-- installation here -->
+1. In FFXIV, open the Dalamud settings (`/xlsettings` in chat, or `xlsettings` in the Dalamud console) and go to the **Experimental** tab.
+2. Under **Custom Plugin Repositories**, add this URL and click the `+`:
+
+   ```
+   https://raw.githubusercontent.com/alexmalao/xiv-fae-controller/master/pluginmaster.json
+   ```
+3. Save, then open the Plugin Installer (`/xlplugins`) and install **Fae Nightwolf's Controller Additions** from the Available Plugins tab.
 
 ### Clockspot Targeting Setup
 - Add XIVLauncher as a game to the steam library (if not owned on Steam).
