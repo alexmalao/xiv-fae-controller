@@ -57,7 +57,9 @@ Shows up to 8 party members arranged around a square (clockwise from the top: N,
 SW, W, NW). Slots are seated automatically — by role for light parties (≤4) and full parties
 (5-8) whenever you zone into an instance or open the window. This can be rearranged at any time.
 
-### Clock spot targeting (controller)
+### Info for Nerds
+
+#### Clockspot Targeting (controller)
 
 The plugin polls Numpad1 through Numpad8 directly every frame (via Dalamud's raw keyboard-state
 service) and targets whoever currently occupies the matching clock position the instant one of
@@ -75,7 +77,35 @@ suppress the keypress from the game, so if Numpad1-8 are bound to something in y
 settings — which they are by default — that action will fire too, alongside the plugin's clock
 spot targeting. Unbinding them in FFXIV (step 1 above) is required to avoid this.
 
-## Loading in-game
+#### Return Kaiten
+
+A personal thing I would like to larp like game design didn't fall off a cliff after Endwalker. Have
+fun larping with me!
+
+#### Untargetable Buffering
+
+This is literally just for parsers. It'll make all GCDs come out frame perfectly (for the exception
+of untargeted GCDs, which can actually be used earlier due to server latency) so all static length
+phases can always consistently get the maximum amount of GCDs. This behavior is replicable via
+macros, however it removes the requirement of macroing every possible GCD for cases where combos
+aren't expired by the time enemies are retargetable.
+
+#### Disable Auto-attacks on Encounter Start
+
+This sounds counter intuitive, but considering that auto-attacks are instant and trigger immediately
+following a button press, it forces a pull on the boss. Disabling this allows attack animations with
+long application delay (e.g. dragon kick, heartbreak shot, air anchor) to pull the boss much earlier
+than normal, upwards of 2s. This is also replicable via macros, and also possible via soft targeting
+on controller or via keybinds.
+
+#### Nearest Enemy Distance
+
+This is useful for knowing when buttons with AoE damage or falloff will be able to reach the closest
+additional target. It has color cutoffs for 5y (standard falloff abilities), 6y (Contre Sixte and
+of Death), and 8y (dedicated targeted AoE).
+
+
+### Loading in-game development build
 
 1. `/xlsettings` → `Experimental` → add the full path to the built `FaeController.dll` under Dev Plugin Locations (one-time).
 2. `/xlplugins` → `Dev Tools > Installed Dev Plugins` → enable `Fae Nightwolf's Controller Additions`.
@@ -84,7 +114,7 @@ See the [template reference doc](docs/SAMPLEPLUGIN_TEMPLATE.md) for more detail 
 
 ## Development Notes
 
-<!-- Architecture decisions, gotchas, links to design docs, etc. go here as the plugin grows. -->
+<!-- Architecture decisions, gotchas, links to design docs, etc. go here as the plugin grows. -->e
 
 ## Roadmap / TODO
 
