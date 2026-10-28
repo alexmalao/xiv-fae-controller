@@ -2,18 +2,32 @@
 
 ## Overview
 
-This plugin is made to add additional support to FFXIV's Steam Controller capabilities (may work with other controllers).
+This plugin is to offer a bunch of QoL changes that aren't covered by existing plugins. Please take a look.
 
 ## Features
 
 Clockspot Targeting:
-- Adds support for a party member targeting radial menu based on clock universal NA standard positions
+- Adds support for a party member targeting radial menu based on clock universal NA positions
+- Requires running the game through steam to support radial menu input
 - Party members can easily be dragged into new clock spot positions
 
-### Installation
+**Return Kaiten**:
+- Restores Kaiten to the beautiful way it once was (costs 25 kenki now instead)
+
+Untargetable Buffering:
+- Allows buffering GCDs/oGCDs on targets that have yet to appear
+- Configurable between 100ms to 1000ms (default 500ms)
+
+Disable Auto-attacks on Encounter Start:
+- Disables auto-attacks on weaponskills and abilities used out of combat
+
+Nearest Enemy Distance:
+- Shows the distance from the center of your target to the hitbox of the nearest target
+
+
+## Installation
 
 Add the following URL to the Custom Plugin Repositories:
-
 ```
 https://raw.githubusercontent.com/alexmalao/xiv-fae-controller/master/pluginmaster.json
 ```
