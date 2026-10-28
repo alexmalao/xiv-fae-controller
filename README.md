@@ -6,22 +6,22 @@ This plugin is to offer a bunch of QoL changes that aren't covered by existing p
 
 ## Features
 
-Clockspot Targeting:
+##### Clockspot Targeting:
 - Adds support for a party member targeting radial menu based on clock universal NA positions
 - Requires running the game through steam to support radial menu input
 - Party members can easily be dragged into new clock spot positions
 
-**Return Kaiten**:
+##### **Return Kaiten**:
 - Restores Kaiten to the beautiful way it once was (costs 25 kenki now instead)
 
-Untargetable Buffering:
+##### Untargetable Buffering:
 - Allows buffering GCDs/oGCDs on targets that have yet to appear
 - Configurable between 100ms to 1000ms (default 500ms)
 
-Disable Auto-attacks on Encounter Start:
+##### Disable Auto-attacks on Encounter Start:
 - Disables auto-attacks on weaponskills and abilities used out of combat
 
-Nearest Enemy Distance:
+##### Nearest Enemy Distance:
 - Shows the distance from the center of your target to the hitbox of the nearest target
 
 
