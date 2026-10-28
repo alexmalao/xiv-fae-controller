@@ -27,9 +27,33 @@ public class ClockSpotsWindow : Window, IDisposable
     private const int SecondDpsSlot = 2;
     private const int HealerSlot = 6;
 
+    // Full-party (5-8 members) cardinal assignments.
+    private const int FullPartySize = 8;
+    private const int MainTankSlot = 0; // North
+    private const int CasterSlot = 1; // NE
+    private const int ShieldHealerSlot = 2; // East
+    private const int MeleeTwoSlot = 3; // SE
+    private const int OffTankSlot = 4; // South
+    private const int MeleeOneSlot = 5; // SW
+    private const int PureHealerSlot = 6; // West
+    private const int PhysRangedSlot = 7; // NW
+
+    // Main Tank vs. Off Tank priority: Warrior, then Paladin, then Gunbreaker, then Dark Knight.
+    private static readonly uint[] TankPriority = { 21, 19, 37, 32 };
+
+    // Pure Healer vs. Shield Healer priority: White Mage, then Astrologian, then Sage, then
+    // Scholar. A flat priority list (rather than grouping by pure/shield archetype) naturally
+    // covers double-shield-healer comps too -- e.g. Sage ranks above Scholar, so a Sage+Scholar
+    // pair seats Sage as the "pure" slot and Scholar as the "shield" slot, matching how parties
+    // usually run Sage as the stand-in pure healer in that comp.
+    private static readonly uint[] HealerPriority = { 24, 33, 40, 28 };
+
     // ClassJob row ids for the current tank and healer jobs; anything else counts as DPS.
     private static readonly HashSet<uint> TankJobIds = new() { 19, 21, 32, 37 };
     private static readonly HashSet<uint> HealerJobIds = new() { 24, 28, 33, 40 };
+    private static readonly HashSet<uint> MeleeJobIds = new() { 20, 22, 30, 34, 39, 41 };
+    private static readonly HashSet<uint> PhysicalRangedJobIds = new() { 23, 31, 38 };
+    private static readonly HashSet<uint> CasterJobIds = new() { 25, 27, 35, 36, 42 };
 
     private readonly ClockSpotMember?[] members = new ClockSpotMember?[SlotCount];
 
@@ -159,6 +183,10 @@ public class ClockSpotsWindow : Window, IDisposable
         {
             SeatLightParty(current, newcomers);
         }
+        else if (current.Count <= FullPartySize)
+        {
+            SeatFullParty(current, newcomers);
+        }
         else
         {
             SeatGeneric(newcomers);
@@ -256,6 +284,67 @@ public class ClockSpotsWindow : Window, IDisposable
 
             members[slot] = member;
         }
+    }
+
+    // Main tank, off tank, two healers, two melee, one physical ranged, and one caster each take
+    // a fixed cardinal slot. Anyone extra (nonstandard comps) falls back to the first open slot.
+    private void SeatFullParty(List<ClockSpotMember> current, List<ClockSpotMember> newcomers)
+    {
+        var newcomerIds = newcomers.Select(m => m.Id).ToHashSet();
+
+        var tanks = current.Where(m => GetRole(m.ClassJobId) == Role.Tank)
+            .OrderBy(m => PriorityIndex(TankPriority, m.ClassJobId))
+            .ToList();
+        var healers = current.Where(m => GetRole(m.ClassJobId) == Role.Healer)
+            .OrderBy(m => PriorityIndex(HealerPriority, m.ClassJobId))
+            .ToList();
+        var melees = current.Where(m => MeleeJobIds.Contains(m.ClassJobId)).ToList();
+        var physRanged = current.Where(m => PhysicalRangedJobIds.Contains(m.ClassJobId)).ToList();
+        var casters = current.Where(m => CasterJobIds.Contains(m.ClassJobId)).ToList();
+
+        var preferredSlots = new Dictionary<ulong, int>();
+
+        void Reserve(List<ClockSpotMember> roleGroup, int index, int slot)
+        {
+            if (index < roleGroup.Count)
+            {
+                preferredSlots[roleGroup[index].Id] = slot;
+            }
+        }
+
+        Reserve(tanks, 0, MainTankSlot);
+        Reserve(tanks, 1, OffTankSlot);
+        Reserve(healers, 0, PureHealerSlot);
+        Reserve(healers, 1, ShieldHealerSlot);
+        Reserve(melees, 0, MeleeOneSlot);
+        Reserve(melees, 1, MeleeTwoSlot);
+        Reserve(physRanged, 0, PhysRangedSlot);
+        Reserve(casters, 0, CasterSlot);
+
+        foreach (var member in current)
+        {
+            if (!newcomerIds.Contains(member.Id))
+            {
+                continue;
+            }
+
+            var slot = preferredSlots.TryGetValue(member.Id, out var preferred) && members[preferred] is null
+                ? preferred
+                : FindFirstEmptySlot();
+
+            if (slot < 0)
+            {
+                continue;
+            }
+
+            members[slot] = member;
+        }
+    }
+
+    private static int PriorityIndex(uint[] priorityOrder, uint classJobId)
+    {
+        var index = Array.IndexOf(priorityOrder, classJobId);
+        return index < 0 ? int.MaxValue : index;
     }
 
     private void SeatSupport(ClockSpotMember? support, int cardinalSlot, HashSet<ulong> newcomerIds)
