@@ -37,6 +37,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private const string ConfigCommandName = "/faeconfig";
     private const string ClockSpotsCommandName = "/faeclocks";
+    private const string KaitenCommandName = "/faekaiten";
 
     // Arbitrary id used to register our "clockspots" chat link handler with Dalamud.
     private const uint ClockSpotsLinkCommandId = 1;
@@ -61,6 +62,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly UntargetableBuffering untargetableBuffering;
     private readonly AutoAttackSuppression autoAttackSuppression;
     private readonly NearestEnemyDistance nearestEnemyDistance;
+    private readonly KaitenRestoration kaitenRestoration;
     private readonly DalamudLinkPayload clockSpotsLinkPayload;
 
     public Plugin()
@@ -70,6 +72,7 @@ public sealed class Plugin : IDalamudPlugin
         untargetableBuffering = new UntargetableBuffering(Configuration, GameInterop);
         autoAttackSuppression = new AutoAttackSuppression(Configuration, GameInterop);
         nearestEnemyDistance = new NearestEnemyDistance(Configuration, AddonLifecycle);
+        kaitenRestoration = new KaitenRestoration(Configuration, GameInterop);
 
         // You might normally want to embed resources and load them from the manifest stream
         var faeImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "fae.png");
@@ -92,6 +95,11 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.AddHandler(ClockSpotsCommandName, new CommandInfo(OnClockSpotsCommand)
         {
             HelpMessage = "Opens the party clock spots window."
+        });
+
+        CommandManager.AddHandler(KaitenCommandName, new CommandInfo(OnKaitenCommand)
+        {
+            HelpMessage = "Places Kaiten on the specified hotbar. Usage: /faekaiten <hotbar_number>"
         });
 
         // Tell the UI system that we want our windows to be drawn through the window system
@@ -136,9 +144,11 @@ public sealed class Plugin : IDalamudPlugin
         untargetableBuffering.Dispose();
         autoAttackSuppression.Dispose();
         nearestEnemyDistance.Dispose();
+        kaitenRestoration.Dispose();
 
         CommandManager.RemoveHandler(ConfigCommandName);
         CommandManager.RemoveHandler(ClockSpotsCommandName);
+        CommandManager.RemoveHandler(KaitenCommandName);
 
         ChatGui.RemoveChatLinkHandler(ClockSpotsLinkCommandId);
     }
@@ -151,9 +161,24 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnClockSpotsCommand(string command, string args)
     {
-        // Always open (rather than toggle) so this is a reliable way to bring the window back up,
-        // clearing any locked/passthrough state from a previous close.
         ClockSpotsWindow.Open();
+    }
+
+    private void OnKaitenCommand(string command, string args)
+    {
+        if (!Configuration.EnableKaitenRestoration)
+        {
+            ChatGui.PrintError("Kaiten restoration is not enabled. Enable it in /faeconfig first.");
+            return;
+        }
+
+        if (!int.TryParse(args.Trim(), out var hotbarNumber))
+        {
+            ChatGui.PrintError("Usage: /faekaiten <hotbar_number> (1-10)");
+            return;
+        }
+
+        KaitenRestoration.PlaceOnHotbar(hotbarNumber);
     }
 
     private void OnFrameworkUpdate(IFramework framework)

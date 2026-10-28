@@ -19,6 +19,7 @@ public unsafe class NearestEnemyDistance : IDisposable
     private const uint CustomNodeIdBase = 99001;
     private const int MaxNameplates = 50;
     private const float AoeThreshold = 5f;
+    private const float WarningThreshold = 6f;
 
     private readonly AtkTextNode*[] customNodes = new AtkTextNode*[MaxNameplates];
 
@@ -123,7 +124,7 @@ public unsafe class NearestEnemyDistance : IDisposable
             node->TextColor.B = 100;
             node->TextColor.A = 255;
         }
-        else if (distance <= 6f)
+        else if (distance <= WarningThreshold)
         {
             node->TextColor.R = 255;
             node->TextColor.G = 255;

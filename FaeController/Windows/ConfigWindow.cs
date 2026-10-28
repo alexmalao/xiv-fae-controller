@@ -9,16 +9,12 @@ public class ConfigWindow : Window, IDisposable
 {
     private readonly Configuration configuration;
 
-    // We give this window a constant ID using ###.
-    // This allows for labels to be dynamic, like "{FPS Counter}fps###XYZ counter window",
-    // and the window ID will always be "###XYZ counter window" for ImGui
-    public ConfigWindow(Plugin plugin) : base("A Wonderful Configuration Window###With a constant ID")
+    public ConfigWindow(Plugin plugin) : base("Fae's Alteration Shop###FaeConfigWindow")
     {
-        Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
-                ImGuiWindowFlags.NoScrollWithMouse;
+        Flags = ImGuiWindowFlags.NoCollapse;
 
-        Size = new Vector2(350, 260);
-        SizeCondition = ImGuiCond.Always;
+        Size = new Vector2(400, 600);
+        SizeCondition = ImGuiCond.FirstUseEver;
 
         configuration = plugin.Configuration;
     }
@@ -186,5 +182,24 @@ public class ConfigWindow : Window, IDisposable
 
         ImGui.TextWrapped(
             "Displays the distance from your current target to the nearest enemy's hitbox ring on the target's nameplate. Green if within 5y AoE range.");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var kaiten = configuration.EnableKaitenRestoration;
+        if (ImGui.Checkbox("Return Kaiten to Samurai", ref kaiten))
+        {
+            configuration.EnableKaitenRestoration = kaiten;
+            configuration.Save();
+
+            if (kaiten)
+            {
+                Plugin.ChatGui.Print("Add Kaiten to your hotbar by typing /faekaiten <hotbar_number>");
+            }
+        }
+
+        ImGui.TextWrapped(
+            "Replaces Kaiten's action with Shinten so you can use Kaiten from your hotbar again. The button will show Kaiten but execute Shinten.");
     }
 }
