@@ -9,6 +9,7 @@ using Dalamud.Plugin;
 using System.IO;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
+using Dalamud.Hooking;
 using FaeController.Windows;
 
 namespace FaeController;
@@ -29,8 +30,9 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
+    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
 
-    private const string CommandName = "/faecontrols";
+    private const string ConfigCommandName = "/faeconfig";
     private const string ClockSpotsCommandName = "/faeclocks";
 
     // Arbitrary id used to register our "clockspots" chat link handler with Dalamud.
@@ -53,11 +55,14 @@ public sealed class Plugin : IDalamudPlugin
     private MainWindow MainWindow { get; init; }
     private ClockSpotsWindow ClockSpotsWindow { get; init; }
 
+    private readonly UntargetableBuffering untargetableBuffering;
     private readonly DalamudLinkPayload clockSpotsLinkPayload;
 
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+
+        untargetableBuffering = new UntargetableBuffering(Configuration, GameInterop);
 
         // You might normally want to embed resources and load them from the manifest stream
         var faeImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "fae.png");
@@ -72,7 +77,7 @@ public sealed class Plugin : IDalamudPlugin
 
         clockSpotsLinkPayload = ChatGui.AddChatLinkHandler(ClockSpotsLinkCommandId, OnClockSpotsLinkClicked);
 
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
+        CommandManager.AddHandler(ConfigCommandName, new CommandInfo(OnCommand)
         {
             HelpMessage = "Opens the FAE Controller settings menu."
         });
@@ -121,7 +126,9 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.Dispose();
         ClockSpotsWindow.Dispose();
 
-        CommandManager.RemoveHandler(CommandName);
+        untargetableBuffering.Dispose();
+
+        CommandManager.RemoveHandler(ConfigCommandName);
         CommandManager.RemoveHandler(ClockSpotsCommandName);
 
         ChatGui.RemoveChatLinkHandler(ClockSpotsLinkCommandId);
@@ -142,6 +149,11 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnFrameworkUpdate(IFramework framework)
     {
+        untargetableBuffering.Update();
+
+        if (!Configuration.EnableClockSpotTargeting)
+            return;
+
         for (var i = 0; i < ClockSpotKeys.Length; i++)
         {
             var isDown = KeyState[ClockSpotKeys[i]];
@@ -166,6 +178,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnTerritoryChanged(uint territoryId)
     {
+        if (!Configuration.EnableClockSpotTargeting)
+            return;
+
         if (!Condition[ConditionFlag.BoundByDuty])
         {
             return;

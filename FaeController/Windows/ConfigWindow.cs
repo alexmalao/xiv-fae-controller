@@ -60,6 +60,20 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Spacing();
 
+        var enableClockSpots = configuration.EnableClockSpotTargeting;
+        if (ImGui.Checkbox("Enable Clockspot Targeting", ref enableClockSpots))
+        {
+            configuration.EnableClockSpotTargeting = enableClockSpots;
+            configuration.Save();
+        }
+
+        if (!enableClockSpots)
+        {
+            ImGui.BeginDisabled();
+        }
+
+        ImGui.Indent();
+
         var hardTarget = configuration.HardTargetClockSpots;
         if (ImGui.Checkbox("Hard target clock spots", ref hardTarget))
         {
@@ -105,5 +119,45 @@ public class ConfigWindow : Window, IDisposable
         {
             ImGui.EndDisabled();
         }
+
+        ImGui.Unindent();
+
+        if (!enableClockSpots)
+        {
+            ImGui.EndDisabled();
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var untargetableBuffering = configuration.EnableUntargetableBuffering;
+        if (ImGui.Checkbox("Untargetable Buffering", ref untargetableBuffering))
+        {
+            configuration.EnableUntargetableBuffering = untargetableBuffering;
+            configuration.Save();
+        }
+
+        if (!untargetableBuffering)
+        {
+            ImGui.BeginDisabled();
+        }
+
+        ImGui.Indent();
+
+        var bufferMs = configuration.UntargetableBufferMs;
+        if (ImGui.SliderInt("Buffer Window (ms)", ref bufferMs, 100, 1000))
+        {
+            configuration.UntargetableBufferMs = bufferMs;
+            configuration.Save();
+        }
+
+        ImGui.Unindent();
+
+        if (!untargetableBuffering)
+        {
+            ImGui.EndDisabled();
+        }
+
     }
 }

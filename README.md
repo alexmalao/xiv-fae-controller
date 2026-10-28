@@ -1,4 +1,4 @@
-# Fae Nightwolf's Controller Additions
+# Fae Nightwolf's Alteration Shop
 
 ## Overview
 
@@ -12,13 +12,11 @@ Clockspot Targeting:
 
 ### Installation
 
-1. In FFXIV, open the Dalamud settings (`/xlsettings` in chat, or `xlsettings` in the Dalamud console) and go to the **Experimental** tab.
-2. Under **Custom Plugin Repositories**, add this URL and click the `+`:
+Add the following URL to the Custom Plugin Repositories:
 
-   ```
-   https://raw.githubusercontent.com/alexmalao/xiv-fae-controller/master/pluginmaster.json
-   ```
-3. Save, then open the Plugin Installer (`/xlplugins`) and install **Fae Nightwolf's Controller Additions** from the Available Plugins tab.
+```
+https://raw.githubusercontent.com/alexmalao/xiv-fae-controller/master/pluginmaster.json
+```
 
 ### Clockspot Targeting Setup
 - Add XIVLauncher as a game to the steam library (if not owned on Steam).
@@ -54,7 +52,7 @@ from the clock spot board at the moment the key is pressed, so it always reflect
 current state, including any manual drag-and-drop rearrangement.
 
 By default this soft-targets (same as mouseover/soft-target). Check "Hard target clock spots" in
-`/faecontrols` to hard target instead.
+`/faeconfig` to hard target instead.
 
 
 **Note:** Dalamud reads these keys directly off the keyboard-state buffer rather than hooking
