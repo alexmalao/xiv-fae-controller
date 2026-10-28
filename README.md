@@ -27,34 +27,36 @@ can be rearranged by dragging one slot onto another to swap them. A chat message
 clickable "clockspots" link also appears automatically when entering an instance with 2+ party
 members.
 
-### Clock spot soft-targeting (`/faeclocktarget <1-8>`)
+### Clock spot soft-targeting (controller, zero in-game setup)
 
-Soft-targets whoever currently occupies a given clock position, numbered 1 (North) through 8
-(Northwest), clockwise. This is read live from the clock spot board at the moment the command
-runs, so it always reflects the board's current state — including any manual drag-and-drop
-rearrangement — with no separate "remap" step needed.
+The plugin polls Numpad1 through Numpad8 directly every frame (via Dalamud's raw keyboard-state
+service) and soft-targets whoever currently occupies the matching clock position the instant one
+of those keys is pressed — numbered 1 (North) through 8 (Northwest), clockwise. This is read live
+from the clock spot board at the moment the key is pressed, so it always reflects the board's
+current state, including any manual drag-and-drop rearrangement.
 
-This is meant to be bound to a controller (e.g. a Steam Controller profile) so that pressing a
-direction always soft-targets whoever is standing there, regardless of their actual party-list
-order. Dalamud plugins can't rebind the game's own keybinds directly, so the setup is:
+**Setup is just the Steam Controller side — nothing to configure in FFXIV itself:**
 
-1. In FFXIV, create 8 macros, one per clock position, each containing a single line:
-   `/faeclocktarget 1` (through `/faeclocktarget 8`).
-2. Place those 8 macros on a hotbar.
-3. In your Steam Controller configuration, map the numpad keys to trigger those hotbar slots:
+1. In your Steam Controller configuration, map each radial/direction to a **keyboard key press**
+   (not an in-game action), using the table below.
+2. That's it. No macros, no hotbar slots, no FFXIV keybind changes.
 
-   | Numpad key | Clock position | Macro |
+   | Steam Controller direction | Keyboard key to bind | Clock position |
    |---|---|---|
-   | Numpad 1 | North | `/faeclocktarget 1` |
-   | Numpad 2 | Northeast | `/faeclocktarget 2` |
-   | Numpad 3 | East | `/faeclocktarget 3` |
-   | Numpad 4 | Southeast | `/faeclocktarget 4` |
-   | Numpad 5 | South | `/faeclocktarget 5` |
-   | Numpad 6 | Southwest | `/faeclocktarget 6` |
-   | Numpad 7 | West | `/faeclocktarget 7` |
-   | Numpad 8 | Northwest | `/faeclocktarget 8` |
+   | North | Numpad 1 | North |
+   | Northeast | Numpad 2 | Northeast |
+   | East | Numpad 3 | East |
+   | Southeast | Numpad 4 | Southeast |
+   | South | Numpad 5 | South |
+   | Southwest | Numpad 6 | Southwest |
+   | West | Numpad 7 | West |
+   | Northwest | Numpad 8 | Northwest |
 
-   (Numbering runs clockwise starting at North, matching the clock spot board layout.)
+**Caveat:** Dalamud reads these keys directly off the keyboard-state buffer rather than hooking
+into FFXIV's own keybind system, since plugins have no API to rebind that. Reading doesn't
+suppress the keypress from the game, so if Numpad1-8 are *also* bound to something in your FFXIV
+keybind settings, that action will fire too. Leaving Numpad1-8 unbound in FFXIV avoids this
+(they're unbound by default).
 
 ## Prerequisites
 

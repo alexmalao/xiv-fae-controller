@@ -1,4 +1,5 @@
 ﻿using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
@@ -26,13 +27,24 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
 
     private const string CommandName = "/faecontrols";
     private const string ClockSpotsCommandName = "/faeclocks";
-    private const string ClockTargetCommandName = "/faeclocktarget";
 
     // Arbitrary id used to register our "clockspots" chat link handler with Dalamud.
     private const uint ClockSpotsLinkCommandId = 1;
+
+    // Numpad1-8, clockwise from North, polled directly so a Steam Controller (or any input
+    // remapper) can be bound straight to these keys with no in-game macro/hotbar setup at all.
+    private static readonly VirtualKey[] ClockSpotKeys =
+    {
+        VirtualKey.NUMPAD1, VirtualKey.NUMPAD2, VirtualKey.NUMPAD3, VirtualKey.NUMPAD4,
+        VirtualKey.NUMPAD5, VirtualKey.NUMPAD6, VirtualKey.NUMPAD7, VirtualKey.NUMPAD8,
+    };
+
+    private readonly bool[] clockSpotKeyWasDown = new bool[ClockSpotKeys.Length];
 
     public Configuration Configuration { get; init; }
 
@@ -70,11 +82,6 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Opens the party clock spots window."
         });
 
-        CommandManager.AddHandler(ClockTargetCommandName, new CommandInfo(OnClockTargetCommand)
-        {
-            HelpMessage = "Soft-targets whoever currently occupies clock position 1 (North) through 8 (Northwest), clockwise."
-        });
-
         // Tell the UI system that we want our windows to be drawn through the window system
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
 
@@ -88,6 +95,10 @@ public sealed class Plugin : IDalamudPlugin
         // Prompt the party to set up clock spots whenever we zone into an instance with others
         ClientState.TerritoryChanged += OnTerritoryChanged;
 
+        // Poll Numpad1-8 directly every frame so a controller bound to those keys soft-targets
+        // the matching clock spot with no in-game macro or hotbar slot required.
+        Framework.Update += OnFrameworkUpdate;
+
         // Add a simple message to the log with level set to information
         // Use /xllog to open the log window in-game
         // Example Output: 00:57:54.959 | INF | [SamplePlugin] ===A cool log message from Sample Plugin===
@@ -97,6 +108,7 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         ClientState.TerritoryChanged -= OnTerritoryChanged;
+        Framework.Update -= OnFrameworkUpdate;
 
         // Unregister all actions to not leak anything during disposal of plugin
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
@@ -111,7 +123,6 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.RemoveHandler(CommandName);
         CommandManager.RemoveHandler(ClockSpotsCommandName);
-        CommandManager.RemoveHandler(ClockTargetCommandName);
 
         ChatGui.RemoveChatLinkHandler(ClockSpotsLinkCommandId);
     }
@@ -128,16 +139,20 @@ public sealed class Plugin : IDalamudPlugin
         ClockSpotsWindow.IsOpen = true;
     }
 
-    private void OnClockTargetCommand(string command, string args)
+    private void OnFrameworkUpdate(IFramework framework)
     {
-        if (!int.TryParse(args.Trim(), out var position) || position is < 1 or > 8)
+        for (var i = 0; i < ClockSpotKeys.Length; i++)
         {
-            Log.Warning($"{ClockTargetCommandName} expects a clock position from 1 (North) to 8 (Northwest), got \"{args}\".");
-            return;
-        }
+            var isDown = KeyState[ClockSpotKeys[i]];
 
-        // Clock positions are 1-indexed clockwise from North; slots are the same, 0-indexed.
-        TargetManager.SoftTarget = ClockSpotsWindow.ResolveSlotTarget(position - 1);
+            // Only react on the press edge, not every frame the key is held down.
+            if (isDown && !clockSpotKeyWasDown[i])
+            {
+                TargetManager.SoftTarget = ClockSpotsWindow.ResolveSlotTarget(i);
+            }
+
+            clockSpotKeyWasDown[i] = isDown;
+        }
     }
 
     private void OnTerritoryChanged(uint territoryId)

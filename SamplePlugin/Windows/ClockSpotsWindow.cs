@@ -39,6 +39,12 @@ public class ClockSpotsWindow : Window, IDisposable
     private const int PureHealerSlot = 6; // West
     private const int PhysRangedSlot = 7; // NW
 
+    // Encounter-specific full-party layout overrides, keyed by TerritoryType.
+    // FRU: shield healer south, off tank east (swapped from the default layout).
+    // TOP: physical ranged northeast, caster northwest (swapped from the default layout).
+    private const uint FuturesRewrittenTerritoryId = 1238;
+    private const uint OmegaProtocolTerritoryId = 1122;
+
     // Main Tank vs. Off Tank priority: Warrior, then Paladin, then Gunbreaker, then Dark Knight.
     private static readonly uint[] TankPriority = { 21, 19, 37, 32 };
 
@@ -347,14 +353,16 @@ public class ClockSpotsWindow : Window, IDisposable
             }
         }
 
+        var (offTankSlot, shieldHealerSlot, physRangedSlot, casterSlot) = GetFullPartySlots();
+
         Reserve(tanks, 0, MainTankSlot);
-        Reserve(tanks, 1, OffTankSlot);
+        Reserve(tanks, 1, offTankSlot);
         Reserve(healers, 0, PureHealerSlot);
-        Reserve(healers, 1, ShieldHealerSlot);
+        Reserve(healers, 1, shieldHealerSlot);
         Reserve(melees, 0, MeleeOneSlot);
         Reserve(melees, 1, MeleeTwoSlot);
-        Reserve(physRanged, 0, PhysRangedSlot);
-        Reserve(casters, 0, CasterSlot);
+        Reserve(physRanged, 0, physRangedSlot);
+        Reserve(casters, 0, casterSlot);
 
         foreach (var member in current)
         {
@@ -374,6 +382,18 @@ public class ClockSpotsWindow : Window, IDisposable
 
             members[slot] = member;
         }
+    }
+
+    // Off tank, shield healer, physical ranged, and caster slots for the current encounter,
+    // swapped from the default layout for fights with a known preferred arrangement.
+    private static (int OffTankSlot, int ShieldHealerSlot, int PhysRangedSlot, int CasterSlot) GetFullPartySlots()
+    {
+        return Plugin.ClientState.TerritoryType switch
+        {
+            FuturesRewrittenTerritoryId => (ShieldHealerSlot, OffTankSlot, PhysRangedSlot, CasterSlot),
+            OmegaProtocolTerritoryId => (OffTankSlot, ShieldHealerSlot, CasterSlot, PhysRangedSlot),
+            _ => (OffTankSlot, ShieldHealerSlot, PhysRangedSlot, CasterSlot),
+        };
     }
 
     private static int PriorityIndex(uint[] priorityOrder, uint classJobId)
