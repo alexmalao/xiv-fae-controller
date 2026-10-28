@@ -63,20 +63,6 @@ suppress the keypress from the game, so if Numpad1-8 are bound to something in y
 settings — which they are by default — that action will fire too, alongside the plugin's clock
 spot targeting. Unbinding them in FFXIV (step 1 above) is required to avoid this.
 
-## Prerequisites
-
-* XIVLauncher, FINAL FANTASY XIV, and Dalamud installed, with the game run at least once with Dalamud enabled.
-* XIVLauncher installed to its default directory (`%AppData%\XIVLauncher`). If using a custom Dalamud dev directory, set the `DALAMUD_HOME` environment variable.
-* .NET SDK matching `FaeController/FaeController.csproj` installed (see CI workflow for the version currently targeted).
-
-## Building
-
-```
-dotnet build --configuration Release
-```
-
-Output DLL: `FaeController/bin/x64/Release/FaeController.dll` (or `Debug` for a debug build).
-
 ## Loading in-game
 
 1. `/xlsettings` → `Experimental` → add the full path to the built `FaeController.dll` under Dev Plugin Locations (one-time).
