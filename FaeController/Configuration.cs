@@ -1,7 +1,7 @@
 ﻿using Dalamud.Configuration;
 using System;
 
-namespace SamplePlugin;
+namespace FaeController;
 
 [Serializable]
 public class Configuration : IPluginConfiguration

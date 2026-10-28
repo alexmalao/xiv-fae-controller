@@ -69,7 +69,7 @@ spot targeting. Unbinding them in FFXIV (step 1 above) is required to avoid this
 
 * XIVLauncher, FINAL FANTASY XIV, and Dalamud installed, with the game run at least once with Dalamud enabled.
 * XIVLauncher installed to its default directory (`%AppData%\XIVLauncher`). If using a custom Dalamud dev directory, set the `DALAMUD_HOME` environment variable.
-* .NET SDK matching `SamplePlugin/SamplePlugin.csproj` installed (see CI workflow for the version currently targeted).
+* .NET SDK matching `FaeController/FaeController.csproj` installed (see CI workflow for the version currently targeted).
 
 ## Building
 
@@ -77,12 +77,12 @@ spot targeting. Unbinding them in FFXIV (step 1 above) is required to avoid this
 dotnet build --configuration Release
 ```
 
-Output DLL: `SamplePlugin/bin/x64/Release/SamplePlugin.dll` (or `Debug` for a debug build).
+Output DLL: `FaeController/bin/x64/Release/FaeController.dll` (or `Debug` for a debug build).
 
 ## Loading in-game
 
-1. `/xlsettings` → `Experimental` → add the full path to the built `SamplePlugin.dll` under Dev Plugin Locations (one-time).
-2. `/xlplugins` → `Dev Tools > Installed Dev Plugins` → enable `SamplePlugin`.
+1. `/xlsettings` → `Experimental` → add the full path to the built `FaeController.dll` under Dev Plugin Locations (one-time).
+2. `/xlplugins` → `Dev Tools > Installed Dev Plugins` → enable `Fae Nightwolf's Controller Additions`.
 
 See the [template reference doc](docs/SAMPLEPLUGIN_TEMPLATE.md) for more detail on this flow.
 

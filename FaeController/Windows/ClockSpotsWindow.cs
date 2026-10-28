@@ -8,7 +8,7 @@ using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
-namespace SamplePlugin.Windows;
+namespace FaeController.Windows;
 
 public class ClockSpotsWindow : Window, IDisposable
 {
