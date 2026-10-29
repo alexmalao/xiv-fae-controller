@@ -70,7 +70,7 @@ public sealed class Plugin : IDalamudPlugin
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         untargetableBuffering = new UntargetableBuffering(Configuration, GameInterop);
-        autoAttackSuppression = new AutoAttackSuppression(Configuration, GameInterop);
+        autoAttackSuppression = new AutoAttackSuppression(Configuration);
         nearestEnemyDistance = new NearestEnemyDistance(Configuration, AddonLifecycle);
         kaitenRestoration = new KaitenRestoration(Configuration, GameInterop);
 

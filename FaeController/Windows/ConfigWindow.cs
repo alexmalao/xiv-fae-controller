@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Windowing;
+using Dalamud.Utility;
 
 namespace FaeController.Windows;
 
@@ -21,41 +25,8 @@ public class ConfigWindow : Window, IDisposable
 
     public void Dispose() { }
 
-    public override void PreDraw()
-    {
-        // Flags must be added or removed before Draw() is being called, or they won't apply
-        if (configuration.IsConfigWindowMovable)
-        {
-            Flags &= ~ImGuiWindowFlags.NoMove;
-        }
-        else
-        {
-            Flags |= ImGuiWindowFlags.NoMove;
-        }
-    }
-
     public override void Draw()
     {
-        // Can't ref a property, so use a local copy
-        var configValue = configuration.SomePropertyToBeSavedAndWithADefault;
-        if (ImGui.Checkbox("Random Config Bool", ref configValue))
-        {
-            configuration.SomePropertyToBeSavedAndWithADefault = configValue;
-            // Can save immediately on change if you don't want to provide a "Save and Close" button
-            configuration.Save();
-        }
-
-        var movable = configuration.IsConfigWindowMovable;
-        if (ImGui.Checkbox("Movable Config Window", ref movable))
-        {
-            configuration.IsConfigWindowMovable = movable;
-            configuration.Save();
-        }
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
         var enableClockSpots = configuration.EnableClockSpotTargeting;
         if (ImGui.Checkbox("Enable Clockspot Targeting", ref enableClockSpots))
         {
@@ -77,13 +48,23 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        ImGui.TextWrapped(
+        ImGui.SameLine();
+        ImGuiComponents.HelpMarker(
             "When checked, Numpad 1-8 will hard target the matching clock spot instead of soft targeting it.");
 
         ImGui.Spacing();
         ImGui.TextColored(
             new Vector4(1f, 0.82f, 0.2f, 1f),
-            "NOTE: make sure to unbind Numpad 1-8 so the keybind inputs do not input with the plugin");
+            "NOTE: Unbind Numpad 1-8 in the keybinds and enable NumLock");
+        ImGui.TextColored(new Vector4(0.3f, 0.6f, 1f, 1f), "How to setup for your Steam Controller");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+        }
+        if (ImGui.IsItemClicked())
+        {
+            Util.OpenLink("https://github.com/alexmalao/xiv-fae-controller/tree/master#clockspot-targeting-setup");
+        }
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -96,8 +77,8 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        ImGui.TextWrapped(
-            "When checked, closing the clockspot window instead locks it in place as a passthrough overlay that can't be interacted with.");
+        ImGui.SameLine();
+        ImGuiComponents.HelpMarker("Closing the clockspot window will lock it and make it passthrough");
 
         if (!lockOnClose)
         {
@@ -105,7 +86,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         var lockedOpacityPercent = configuration.ClockSpotsLockedOpacity * 100f;
-        ImGui.SetNextItemWidth(80);
+        ImGui.SetNextItemWidth(240);
         if (ImGui.SliderFloat("Locked Opacity", ref lockedOpacityPercent, 0f, 100f, "%.0f%%"))
         {
             configuration.ClockSpotsLockedOpacity = lockedOpacityPercent / 100f;
@@ -152,7 +133,7 @@ public class ConfigWindow : Window, IDisposable
         }
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(60);
+        ImGui.SetNextItemWidth(180);
         if (ImGui.SliderInt("##BufferWindowSlider", ref bufferMs, 100, 1000, ""))
         {
             configuration.UntargetableBufferMs = bufferMs;
@@ -177,8 +158,8 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        ImGui.TextWrapped(
-            "Suppresses auto-attacks when initiating combat, so aggro is determined by the action's damage application delay rather than an instant auto-attack hit.");
+        ImGui.SameLine();
+        ImGuiComponents.HelpMarker("Currently doesn't work");
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -191,8 +172,10 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        ImGui.TextWrapped(
-            "Displays the distance from your current target to the nearest enemy's hitbox ring on the target's nameplate. Green if within 5y AoE range.");
+        ImGui.SameLine();
+        ImGuiComponents.HelpMarker(
+            "Shows distance to hitbox of nearest enemy on the main target ui, as well as how close " +
+            "other enemies are to your current target on their nameplates");
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -206,7 +189,14 @@ public class ConfigWindow : Window, IDisposable
 
             if (kaiten)
             {
-                Plugin.ChatGui.Print("Add Kaiten to your hotbar by typing /faekaiten <hotbar_number>");
+                var message = new SeStringBuilder()
+                    .AddText("Add Kaiten to your hotbar by typing ")
+                    .AddUiForeground(500)
+                    .AddText("/faekaiten <hotbar_number>")
+                    .AddUiForegroundOff()
+                    .Build();
+
+                Plugin.ChatGui.Print(new XivChatEntry { Message = message });
             }
         }
 

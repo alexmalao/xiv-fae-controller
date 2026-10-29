@@ -69,7 +69,7 @@ public class ClockSpotsWindow : Window, IDisposable
     private bool isLocked;
 
     public ClockSpotsWindow(Configuration configuration)
-        : base("Party Clock Spots###FAE Clock Spots Window",
+        : base("Clockspots###FAE Clock Spots Window",
             ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         this.configuration = configuration;
@@ -78,13 +78,14 @@ public class ClockSpotsWindow : Window, IDisposable
     public void Dispose() { }
 
     // Reopens the window as a fully interactive window, clearing any locked/passthrough state.
+    // SyncPartyMembers() is a no-op if nothing has changed, so this won't disturb manual
+    // drag-and-drop rearranging unless the party composition or someone's job actually changed.
     public void Open()
     {
         isLocked = false;
         IsOpen = true;
+        SyncPartyMembers();
     }
-
-    public override void OnOpen() => SyncPartyMembers();
 
     public override void OnClose()
     {
@@ -107,20 +108,23 @@ public class ClockSpotsWindow : Window, IDisposable
         BgAlpha = isLocked ? configuration.ClockSpotsLockedOpacity : null;
     }
 
+    // Room reserved below the icon for the name initials plus a small gap, added on top of the
+    // icon's own size to get the (always square) slot pitch -- so the grid stays proportional
+    // to the icon instead of under- or over-shooting it.
+    private const float NameAndGapAllowance = 20f;
+
     public override void Draw()
     {
-        var iconSize = new Vector2(64, 64) * ImGuiHelpers.GlobalScale;
-        var nameAreaWidth = 36f * ImGuiHelpers.GlobalScale;
-        var cellGap = 12f * ImGuiHelpers.GlobalScale;
-        var colStride = iconSize.X + ImGui.GetStyle().ItemSpacing.X + nameAreaWidth + cellGap;
-        var rowStride = iconSize.Y + cellGap;
+        var iconDimension = ImGui.GetFontSize() * 2f * (2f / 3f) * 2f * (2f / 3f);
+        var iconSize = new Vector2(iconDimension, iconDimension) * ImGuiHelpers.GlobalScale;
+        var stride = (iconDimension + NameAndGapAllowance) * ImGuiHelpers.GlobalScale;
         var origin = ImGui.GetCursorPos();
 
         for (var i = 0; i < GridSlots.Length; i++)
         {
             var row = i / 3;
             var col = i % 3;
-            var pos = origin + new Vector2(col * colStride, row * rowStride);
+            var pos = origin + new Vector2(col * stride, row * stride);
             var slotIndex = GridSlots[i];
 
             if (slotIndex < 0)
@@ -132,7 +136,7 @@ public class ClockSpotsWindow : Window, IDisposable
             DrawSlot(slotIndex, pos, iconSize);
         }
 
-        ImGui.SetCursorPos(origin + new Vector2(0, rowStride * 3));
+        ImGui.SetCursorPos(origin + new Vector2(0, stride * 3));
     }
 
     private void DrawSlot(int slotIndex, Vector2 pos, Vector2 iconSize)
@@ -145,7 +149,12 @@ public class ClockSpotsWindow : Window, IDisposable
         if (member is { } occupied)
         {
             var icon = Plugin.TextureProvider.GetFromGameIcon(new GameIconLookup(JobIconBaseId + occupied.ClassJobId)).GetWrapOrEmpty();
+
+            // Zero frame padding so the button's bounding box is exactly iconSize -- otherwise
+            // the default padding inflates it past the empty-slot size and the grid looks uneven.
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
             ImGui.ImageButton(icon.Handle, iconSize);
+            ImGui.PopStyleVar();
         }
         else
         {
@@ -176,12 +185,11 @@ public class ClockSpotsWindow : Window, IDisposable
             ImGui.EndDragDropTarget();
         }
 
-        // Job icon on the left, name initials to the right of it.
-        ImGui.SameLine();
-        ImGui.AlignTextToFramePadding();
-
+        // Name initials centered below the icon.
         if (member is { } labeled)
         {
+            var textSize = ImGui.CalcTextSize(labeled.Abbreviation);
+            ImGui.SetCursorPos(new Vector2(pos.X + (iconSize.X - textSize.X) / 2f, pos.Y + iconSize.Y + 2f));
             ImGui.Text(labeled.Abbreviation);
         }
 
@@ -202,33 +210,52 @@ public class ClockSpotsWindow : Window, IDisposable
     {
         var current = GetCurrentMembers().ToList();
 
-        // Drop anyone who has left the party.
-        for (var i = 0; i < members.Length; i++)
-        {
-            if (members[i] is { } existing && current.All(c => c.Id != existing.Id))
-            {
-                members[i] = null;
-            }
-        }
-
-        var newcomers = current.Where(c => members.All(m => m?.Id != c.Id)).ToList();
-        if (newcomers.Count == 0)
+        if (!HasCompositionOrJobChanged(current))
         {
             return;
         }
 
+        // Something changed -- a join/leave or a job swap among people already seated. Clear
+        // everyone and run the full automatic seating fresh, same as a brand new instance entry,
+        // rather than just patching in deltas (which wouldn't catch job swaps at all, since no
+        // one's Id changes when players swap jobs around).
+        Array.Clear(members);
+
         if (current.Count <= LightPartySize)
         {
-            SeatLightParty(current, newcomers);
+            SeatLightParty(current, current);
         }
         else if (current.Count <= FullPartySize)
         {
-            SeatFullParty(current, newcomers);
+            SeatFullParty(current, current);
         }
         else
         {
-            SeatGeneric(newcomers);
+            SeatGeneric(current);
         }
+    }
+
+    private bool HasCompositionOrJobChanged(List<ClockSpotMember> current)
+    {
+        var existingById = members
+            .Where(m => m is not null)
+            .ToDictionary(m => m!.Id, m => m!);
+
+        if (existingById.Count != current.Count)
+        {
+            return true;
+        }
+
+        foreach (var member in current)
+        {
+            if (!existingById.TryGetValue(member.Id, out var existing) ||
+                existing.ClassJobId != member.ClassJobId)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Looks up whoever currently occupies the given slot and resolves them to a live game

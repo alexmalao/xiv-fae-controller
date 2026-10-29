@@ -1,9 +1,7 @@
 using System;
-using System.Diagnostics;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Hooking;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 
 namespace FaeController;
 
@@ -11,65 +9,17 @@ public unsafe class AutoAttackSuppression : IDisposable
 {
     private readonly Configuration configuration;
 
-    private const uint MeleeAutoAttackId = 7;
-    private const uint RangedAutoAttackId = 8;
-    private const int SuppressionDurationMs = 2000;
+    private const uint MeleeAutoAttackToggleId = 7;
+    private const uint RangedAutoAttackToggleId = 8;
 
-    private bool wasOutOfCombat = true;
-    private bool suppressionActive;
-    private readonly Stopwatch suppressionTimer = new();
+    private bool wasInCombat;
 
-    private delegate bool UseActionDelegate(
-        ActionManager* actionManager, ActionType actionType, uint actionId,
-        ulong targetId, uint extraParam, uint useType, uint comboRouteId,
-        bool* outOptAreaTargeted);
-
-    private readonly Hook<UseActionDelegate> useActionHook;
-
-    public AutoAttackSuppression(Configuration configuration, IGameInteropProvider gameInterop)
+    public AutoAttackSuppression(Configuration configuration)
     {
         this.configuration = configuration;
-
-        useActionHook = gameInterop.HookFromAddress<UseActionDelegate>(
-            (nint)ActionManager.MemberFunctionPointers.UseAction,
-            UseActionDetour);
-        useActionHook.Enable();
     }
 
-    public void Dispose()
-    {
-        useActionHook.Dispose();
-    }
-
-    private bool UseActionDetour(
-        ActionManager* actionManager, ActionType actionType, uint actionId,
-        ulong targetId, uint extraParam, uint useType, uint comboRouteId,
-        bool* outOptAreaTargeted)
-    {
-        if (configuration.EnableDisableAutoAttackOnPull &&
-            actionType == ActionType.Action &&
-            IsAutoAttack(actionId) &&
-            suppressionActive)
-        {
-            return false;
-        }
-
-        var result = useActionHook.Original(actionManager, actionType, actionId,
-            targetId, extraParam, useType, comboRouteId, outOptAreaTargeted);
-
-        if (result && configuration.EnableDisableAutoAttackOnPull &&
-            actionType == ActionType.Action &&
-            !IsAutoAttack(actionId) &&
-            wasOutOfCombat)
-        {
-            suppressionActive = true;
-            wasOutOfCombat = false;
-            suppressionTimer.Restart();
-            Plugin.Log.Information("[Auto-Attack Suppression] Suppressing auto-attacks for encounter start.");
-        }
-
-        return result;
-    }
+    public void Dispose() { }
 
     public void Update()
     {
@@ -78,24 +28,38 @@ public unsafe class AutoAttackSuppression : IDisposable
 
         var inCombat = Plugin.Condition[ConditionFlag.InCombat];
 
-        if (!inCombat)
+        if (inCombat && !wasInCombat)
         {
-            if (suppressionActive)
-                Plugin.Log.Information("[Auto-Attack Suppression] Left combat, clearing suppression.");
-
-            wasOutOfCombat = true;
-            suppressionActive = false;
-            suppressionTimer.Reset();
+            // Just entered combat - resume normal auto-attacking.
+            ForceAutoAttack(true);
+        }
+        else if (!inCombat)
+        {
+            // Keep it suppressed for the whole out-of-combat period, not just reactively at the
+            // moment of the pull - toggling reactively loses the race against the server already
+            // having scheduled the "instant" swing by the time our own toggle lands.
+            ForceAutoAttack(false);
         }
 
-        if (suppressionActive && suppressionTimer.ElapsedMilliseconds >= SuppressionDurationMs)
-        {
-            suppressionActive = false;
-            suppressionTimer.Reset();
-            Plugin.Log.Information("[Auto-Attack Suppression] Suppression window expired, auto-attacks re-enabled.");
-        }
+        wasInCombat = inCombat;
     }
 
-    private static bool IsAutoAttack(uint actionId) =>
-        actionId is MeleeAutoAttackId or RangedAutoAttackId;
+    private static void ForceAutoAttack(bool desired)
+    {
+        var uiState = UIState.Instance();
+        var actionManager = ActionManager.Instance();
+        if (uiState == null || actionManager == null) return;
+
+        if (uiState->WeaponState.AutoAttackState.IsAutoAttacking == desired)
+            return;
+
+        actionManager->UseAction(ActionType.Action, MeleeAutoAttackToggleId, 0, 0,
+            ActionManager.UseActionMode.None, 0, null);
+
+        if (uiState->WeaponState.AutoAttackState.IsAutoAttacking != desired)
+        {
+            actionManager->UseAction(ActionType.Action, RangedAutoAttackToggleId, 0, 0,
+                ActionManager.UseActionMode.None, 0, null);
+        }
+    }
 }
