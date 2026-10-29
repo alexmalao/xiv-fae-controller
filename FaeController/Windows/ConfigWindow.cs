@@ -104,10 +104,11 @@ public class ConfigWindow : Window, IDisposable
             ImGui.BeginDisabled();
         }
 
-        var lockedOpacity = configuration.ClockSpotsLockedOpacity;
-        if (ImGui.SliderFloat("Locked Opacity", ref lockedOpacity, 0f, 1f, "%.2f"))
+        var lockedOpacityPercent = configuration.ClockSpotsLockedOpacity * 100f;
+        ImGui.SetNextItemWidth(80);
+        if (ImGui.SliderFloat("Locked Opacity", ref lockedOpacityPercent, 0f, 100f, "%.0f%%"))
         {
-            configuration.ClockSpotsLockedOpacity = lockedOpacity;
+            configuration.ClockSpotsLockedOpacity = lockedOpacityPercent / 100f;
             configuration.Save();
         }
 
@@ -142,7 +143,17 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Indent();
 
         var bufferMs = configuration.UntargetableBufferMs;
-        if (ImGui.SliderInt("Buffer Window (ms)", ref bufferMs, 100, 1000))
+        ImGui.SetNextItemWidth(80);
+        if (ImGui.InputInt("Buffer Window (ms)", ref bufferMs))
+        {
+            bufferMs = Math.Clamp(bufferMs, 100, 1000);
+            configuration.UntargetableBufferMs = bufferMs;
+            configuration.Save();
+        }
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(60);
+        if (ImGui.SliderInt("##BufferWindowSlider", ref bufferMs, 100, 1000, ""))
         {
             configuration.UntargetableBufferMs = bufferMs;
             configuration.Save();

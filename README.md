@@ -39,6 +39,7 @@ https://raw.githubusercontent.com/alexmalao/xiv-fae-controller/master/pluginmast
 - Set the Menu Type to Radial Menu and add eight buttons, in order from numpad/keypad 1-8 (N clockwise to NW)
 - (Optional) add icons for the steam button overlay to better match clock spot roles
 - In game, unbind any keybinds using Numpad 1-8 (default key for soft targetting)
+- Make sure NumLock is enabled — the Numpad keys only send their expected input when it's on
 
    | Steam Controller direction | Keyboard key to bind | Clock position |
    |---|---|---|
@@ -75,7 +76,8 @@ By default this soft-targets (same as mouseover/soft-target). Check "Hard target
 into FFXIV's own keybind system, since plugins have no API to rebind. Reading doesn't
 suppress the keypress from the game, so if Numpad1-8 are bound to something in your FFXIV keybind
 settings — which they are by default — that action will fire too, alongside the plugin's clock
-spot targeting. Unbinding them in FFXIV (step 1 above) is required to avoid this.
+spot targeting. Unbinding them in FFXIV (step 1 above) is required to avoid this. NumLock must
+also be enabled, or the keyboard reports these as navigation keys instead of Numpad1-8.
 
 #### Return Kaiten
 

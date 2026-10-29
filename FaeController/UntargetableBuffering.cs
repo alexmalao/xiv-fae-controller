@@ -56,8 +56,7 @@ public unsafe class UntargetableBuffering : IDisposable
         }
 
         if (!result && configuration.EnableUntargetableBuffering &&
-            actionType == ActionType.Action && targetId != 0 &&
-            IsTargetUntargetable(targetId))
+            actionType == ActionType.Action && targetId != 0)
         {
             bufferedActionId = actionId;
             bufferedTargetId = targetId;
@@ -94,19 +93,5 @@ public unsafe class UntargetableBuffering : IDisposable
             hasBufferedAction = false;
             bufferTimer.Reset();
         }
-    }
-
-    private static bool IsTargetUntargetable(ulong targetId)
-    {
-        foreach (var obj in Plugin.ObjectTable)
-        {
-            if ((ulong)obj.GameObjectId == targetId)
-            {
-                var native = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)obj.Address;
-                return !native->GetIsTargetable();
-            }
-        }
-
-        return false;
     }
 }
