@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
@@ -68,8 +69,6 @@ public unsafe class NearestEnemyDistance : IDisposable
             return;
         }
 
-        var nearestDistance = CalculateNearestEnemyDistance(target);
-
         var raptureModule = RaptureAtkModule.Instance();
         if (raptureModule == null)
         {
@@ -77,21 +76,32 @@ public unsafe class NearestEnemyDistance : IDisposable
             return;
         }
 
+        var objectsById = BuildObjectLookup();
         var activeCount = raptureModule->NameplateInfoCount;
 
         for (var i = 0; i < activeCount && i < MaxNameplates; i++)
         {
             ref var info = ref raptureModule->NamePlateInfoEntries[i];
-            var isTarget = info.ObjectId.ObjectId == (uint)target.GameObjectId;
+            var objectId = info.ObjectId.ObjectId;
 
-            if (isTarget && nearestDistance < float.MaxValue)
-            {
-                ShowDistanceOnNameplate(addon, i, nearestDistance);
-            }
-            else
+            if (objectId == target.EntityId)
             {
                 HideNode(i);
+                continue;
             }
+
+            if (!objectsById.TryGetValue(objectId, out var npcObject) ||
+                npcObject is not IBattleNpc npc || npc.BattleNpcKind != BattleNpcSubKind.Combatant ||
+                npc.StatusFlags.HasFlag(StatusFlags.PartyMember) ||
+                npc.StatusFlags.HasFlag(StatusFlags.AllianceMember) ||
+                npc.StatusFlags.HasFlag(StatusFlags.Friend))
+            {
+                HideNode(i);
+                continue;
+            }
+
+            var distance = CalculateDistanceToTarget(target, npcObject);
+            ShowDistanceOnNameplate(addon, i, distance);
         }
 
         for (var i = activeCount; i < MaxNameplates; i++)
@@ -210,6 +220,24 @@ public unsafe class NearestEnemyDistance : IDisposable
         return textNode;
     }
 
+    private static Dictionary<uint, IGameObject> BuildObjectLookup()
+    {
+        var lookup = new Dictionary<uint, IGameObject>();
+        foreach (var obj in Plugin.ObjectTable)
+            lookup[obj.EntityId] = obj;
+        return lookup;
+    }
+
+    private static float CalculateDistanceToTarget(IGameObject currentTarget, IGameObject other)
+    {
+        var targetPos = currentTarget.Position;
+        var dx = targetPos.X - other.Position.X;
+        var dz = targetPos.Z - other.Position.Z;
+        var centerToCenter = MathF.Sqrt(dx * dx + dz * dz);
+        var centerToRing = centerToCenter - other.HitboxRadius;
+        return centerToRing < 0 ? 0 : centerToRing;
+    }
+
     private static float CalculateNearestEnemyDistance(IGameObject currentTarget)
     {
         var nearest = float.MaxValue;
@@ -217,10 +245,14 @@ public unsafe class NearestEnemyDistance : IDisposable
 
         foreach (var obj in Plugin.ObjectTable)
         {
-            if (obj.GameObjectId == currentTarget.GameObjectId)
+            if (obj.EntityId == currentTarget.EntityId)
                 continue;
 
-            if (obj is not IBattleNpc npc || npc.BattleNpcKind != BattleNpcSubKind.Combatant)
+            if (obj is not IBattleNpc npc || npc.BattleNpcKind != BattleNpcSubKind.Combatant ||
+                npc.StatusFlags.HasFlag(StatusFlags.PartyMember) ||
+                npc.StatusFlags.HasFlag(StatusFlags.AllianceMember) ||
+                npc.StatusFlags.HasFlag(StatusFlags.Friend) ||
+                obj.Name.TextValue.Length == 0)
                 continue;
 
             var dx = targetPos.X - obj.Position.X;
@@ -258,8 +290,8 @@ public unsafe class NearestEnemyDistance : IDisposable
         else if (distance <= WarningThreshold)
         {
             node->TextColor.R = 255;
-            node->TextColor.G = 255;
-            node->TextColor.B = 0;
+            node->TextColor.G = 235;
+            node->TextColor.B = 140;
             node->TextColor.A = 255;
         }
         else if (distance <= LargeAoeThreshold)
@@ -271,9 +303,9 @@ public unsafe class NearestEnemyDistance : IDisposable
         }
         else
         {
-            node->TextColor.R = 255;
-            node->TextColor.G = 80;
-            node->TextColor.B = 80;
+            node->TextColor.R = 235;
+            node->TextColor.G = 110;
+            node->TextColor.B = 110;
             node->TextColor.A = 255;
         }
     }
@@ -292,7 +324,7 @@ public unsafe class NearestEnemyDistance : IDisposable
         textNode->AtkResNode.NodeId = CustomNodeIdBase + (uint)index;
         textNode->AtkResNode.SetWidth(200);
         textNode->AtkResNode.SetHeight(22);
-        textNode->AtkResNode.SetPositionFloat(0, -22);
+        textNode->AtkResNode.SetPositionFloat(45, 70);
         textNode->AtkResNode.SetScale(1f, 1f);
 
         textNode->FontSize = 14;
