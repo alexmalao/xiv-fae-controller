@@ -22,6 +22,7 @@ public unsafe class NearestEnemyDistance : IDisposable
     private const float AoeThreshold = 5f;
     private const float WarningThreshold = 6f;
     private const float LargeAoeThreshold = 8f;
+    private const float MaxDisplayDistance = 30f;
 
     private const uint HpBarWidgetNodeId = 99099;
     private const ushort HpBarWidgetWidth = 200;
@@ -101,6 +102,12 @@ public unsafe class NearestEnemyDistance : IDisposable
             }
 
             var distance = CalculateDistanceToTarget(target, npcObject);
+            if (distance > MaxDisplayDistance)
+            {
+                HideNode(i);
+                continue;
+            }
+
             ShowDistanceOnNameplate(addon, i, distance);
         }
 
@@ -132,7 +139,7 @@ public unsafe class NearestEnemyDistance : IDisposable
         }
 
         var nearestDistance = CalculateNearestEnemyDistance(target);
-        if (nearestDistance >= float.MaxValue)
+        if (nearestDistance > MaxDisplayDistance)
         {
             HideHpBarWidgetNode(addon);
             HideHpBarWidgetNode(otherAddon);
