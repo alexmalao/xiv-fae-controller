@@ -65,12 +65,17 @@ public sealed class Plugin : IDalamudPlugin
     private readonly KaitenRestoration kaitenRestoration;
     private readonly DalamudLinkPayload clockSpotsLinkPayload;
 
+    // TerritoryChanged fires before Condition[BoundByDuty] (and the party list) actually update,
+    // so the prompt can't be decided right there -- instead flag it as pending and let
+    // OnFrameworkUpdate fire it once BoundByDuty actually flips true.
+    private bool pendingClockSpotPrompt;
+
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         untargetableBuffering = new UntargetableBuffering(Configuration, GameInterop);
-        autoAttackSuppression = new AutoAttackSuppression(Configuration);
+        autoAttackSuppression = new AutoAttackSuppression(Configuration, GameInterop);
         nearestEnemyDistance = new NearestEnemyDistance(Configuration, AddonLifecycle);
 
         // You might normally want to embed resources and load them from the manifest stream
@@ -188,6 +193,11 @@ public sealed class Plugin : IDalamudPlugin
         autoAttackSuppression.Update();
         kaitenRestoration.Update();
 
+        if (pendingClockSpotPrompt)
+        {
+            TryPromptClockSpots();
+        }
+
         if (!Configuration.EnableClockSpotTargeting)
             return;
 
@@ -218,10 +228,17 @@ public sealed class Plugin : IDalamudPlugin
         if (!Configuration.EnableClockSpotTargeting)
             return;
 
+        pendingClockSpotPrompt = true;
+    }
+
+    private void TryPromptClockSpots()
+    {
         if (!Condition[ConditionFlag.BoundByDuty])
         {
             return;
         }
+
+        pendingClockSpotPrompt = false;
 
         // Refresh the clock spot board as soon as we zone into any instance, whether solo or partied.
         ClockSpotsWindow.SyncPartyMembers();

@@ -159,7 +159,9 @@ public class ConfigWindow : Window, IDisposable
         }
 
         ImGui.SameLine();
-        ImGuiComponents.HelpMarker("Currently doesn't work");
+        ImGuiComponents.HelpMarker(
+            "Experimental: pins the auto-attack swing timer to zero while out of combat so the " +
+            "first swing doesn't fire instantly on engagement. Verify in-game before relying on it.");
 
         ImGui.Spacing();
         ImGui.Separator();
