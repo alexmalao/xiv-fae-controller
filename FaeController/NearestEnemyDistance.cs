@@ -32,10 +32,21 @@ public unsafe class NearestEnemyDistance : IDisposable
 
     private readonly AtkTextNode*[] customNodes = new AtkTextNode*[MaxNameplates];
 
+    // Sentinel distinct from any real EntityId (including 0, which some empty/invalid slots use)
+    // so the first real occupant of a slot always logs instead of silently matching on startup.
+    private const uint NoLoggedObjectId = uint.MaxValue;
+
+    // Edge-triggered log state: only log when a nameplate slot's occupant or the HP-bar widget's
+    // chosen "nearest enemy" actually changes, instead of every PreDraw call.
+    private readonly uint[] lastLoggedNameplateObjectId = new uint[MaxNameplates];
+    private uint lastLoggedNearestEnemyId = NoLoggedObjectId;
+
     public NearestEnemyDistance(Configuration configuration, IAddonLifecycle addonLifecycle)
     {
         this.configuration = configuration;
         this.addonLifecycle = addonLifecycle;
+
+        Array.Fill(lastLoggedNameplateObjectId, NoLoggedObjectId);
 
         addonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnNamePlatePreDraw);
         addonLifecycle.RegisterListener(AddonEvent.PreDraw, "_TargetInfo", OnTargetInfoPreDraw);
@@ -88,6 +99,7 @@ public unsafe class NearestEnemyDistance : IDisposable
             if (objectId == target.EntityId)
             {
                 HideNode(i);
+                LogNameplateIfChanged(i, objectId, null, "is the current target");
                 continue;
             }
 
@@ -98,6 +110,7 @@ public unsafe class NearestEnemyDistance : IDisposable
                 npc.StatusFlags.HasFlag(StatusFlags.Friend))
             {
                 HideNode(i);
+                LogNameplateIfChanged(i, objectId, objectsById.GetValueOrDefault(objectId), "filtered out (not a hostile combatant)");
                 continue;
             }
 
@@ -105,10 +118,12 @@ public unsafe class NearestEnemyDistance : IDisposable
             if (distance > MaxDisplayDistance)
             {
                 HideNode(i);
+                LogNameplateIfChanged(i, objectId, npcObject, $"beyond max display distance ({distance:F1}y)");
                 continue;
             }
 
             ShowDistanceOnNameplate(addon, i, distance);
+            LogNameplateIfChanged(i, objectId, npcObject, $"shown at {distance:F1}y");
         }
 
         for (var i = activeCount; i < MaxNameplates; i++)
@@ -249,6 +264,27 @@ public unsafe class NearestEnemyDistance : IDisposable
         return textNode;
     }
 
+    // Logs only when a nameplate slot's occupant actually changes (the game recycles slots as
+    // mobs enter/leave range), so this stays bounded instead of firing every PreDraw call.
+    private void LogNameplateIfChanged(int index, uint objectId, IGameObject? npcObject, string outcome)
+    {
+        if (lastLoggedNameplateObjectId[index] == objectId)
+            return;
+
+        lastLoggedNameplateObjectId[index] = objectId;
+
+        if (npcObject == null)
+        {
+            Plugin.Log.Information(
+                $"[NearestEnemyDistance] nameplate[{index}] objectId={objectId} not resolvable in object table - {outcome}");
+            return;
+        }
+
+        Plugin.Log.Information(
+            $"[NearestEnemyDistance] nameplate[{index}] \"{npcObject.Name.TextValue}\" (id={objectId}) " +
+            $"targetable={npcObject.IsTargetable} dead={npcObject.IsDead} pos={npcObject.Position} - {outcome}");
+    }
+
     private static Dictionary<uint, IGameObject> BuildObjectLookup()
     {
         var lookup = new Dictionary<uint, IGameObject>();
@@ -267,9 +303,10 @@ public unsafe class NearestEnemyDistance : IDisposable
         return centerToRing < 0 ? 0 : centerToRing;
     }
 
-    private static float CalculateNearestEnemyDistance(IGameObject currentTarget)
+    private float CalculateNearestEnemyDistance(IGameObject currentTarget)
     {
         var nearest = float.MaxValue;
+        IGameObject? nearestObject = null;
         var targetPos = currentTarget.Position;
 
         foreach (var obj in Plugin.ObjectTable)
@@ -291,10 +328,40 @@ public unsafe class NearestEnemyDistance : IDisposable
             if (centerToRing < 0) centerToRing = 0;
 
             if (centerToRing < nearest)
+            {
                 nearest = centerToRing;
+                nearestObject = obj;
+            }
         }
 
+        LogNearestEnemyIfChanged(currentTarget, nearestObject, nearest);
+
         return nearest;
+    }
+
+    // Logs only when the HP-bar widget's chosen "nearest enemy" actually changes to a different
+    // object, so a misbehaving pick (e.g. something untargetable/dead, or a distance that looks
+    // too short) can be traced back to exactly which object table entry won the comparison.
+    private void LogNearestEnemyIfChanged(IGameObject currentTarget, IGameObject? nearestObject, float nearest)
+    {
+        var nearestId = nearestObject?.EntityId ?? NoLoggedObjectId;
+        if (nearestId == lastLoggedNearestEnemyId)
+            return;
+
+        lastLoggedNearestEnemyId = nearestId;
+
+        if (nearestObject == null)
+        {
+            Plugin.Log.Information(
+                $"[NearestEnemyDistance] target=\"{currentTarget.Name.TextValue}\" (id={currentTarget.EntityId}) - " +
+                "no other hostile combatant found in object table");
+            return;
+        }
+
+        Plugin.Log.Information(
+            $"[NearestEnemyDistance] target=\"{currentTarget.Name.TextValue}\" (id={currentTarget.EntityId}) pos={currentTarget.Position} -> " +
+            $"nearest=\"{nearestObject.Name.TextValue}\" (id={nearestObject.EntityId}) targetable={nearestObject.IsTargetable} " +
+            $"dead={nearestObject.IsDead} pos={nearestObject.Position} hitboxRadius={nearestObject.HitboxRadius} distance={nearest:F2}y");
     }
 
     private void ShowDistanceOnNameplate(AddonNamePlate* addon, int index, float distance)
