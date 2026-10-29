@@ -373,7 +373,7 @@ public class ClockSpotsWindow : Window, IDisposable
             }
             else
             {
-                slot = members[FirstDpsSlot] is null ? FirstDpsSlot : FindFirstEmptySlot(SecondDpsSlot);
+                slot = members[FirstDpsSlot] is null ? FirstDpsSlot : FindFirstEmptySlot(new[] { SecondDpsSlot });
             }
 
             if (slot < 0)
@@ -422,6 +422,13 @@ public class ClockSpotsWindow : Window, IDisposable
         Reserve(physRanged, 0, physRangedSlot);
         Reserve(casters, 0, casterSlot);
 
+        // Slots reserved for someone else's role must stay off-limits to the fallback search
+        // below, even before that person is actually seated -- otherwise an unreserved "extra"
+        // same-role member (e.g. a 3rd caster when there's no 2nd melee/ranged) processed earlier
+        // in party order could squat a cardinal that's rightfully reserved for a teammate who
+        // hasn't had their turn yet, bumping that teammate into the wrong spot instead.
+        var reservedSlots = preferredSlots.Values.ToHashSet();
+
         foreach (var member in current)
         {
             if (!newcomerIds.Contains(member.Id))
@@ -431,7 +438,7 @@ public class ClockSpotsWindow : Window, IDisposable
 
             var slot = preferredSlots.TryGetValue(member.Id, out var preferred) && members[preferred] is null
                 ? preferred
-                : FindFirstEmptySlot();
+                : FindFirstEmptySlot(reservedSlots);
 
             if (slot < 0)
             {
@@ -494,11 +501,11 @@ public class ClockSpotsWindow : Window, IDisposable
         return reordered;
     }
 
-    private int FindFirstEmptySlot(int? excludeSlot = null)
+    private int FindFirstEmptySlot(ICollection<int>? excludeSlots = null)
     {
         for (var i = 0; i < members.Length; i++)
         {
-            if (i != excludeSlot && members[i] is null)
+            if (members[i] is null && (excludeSlots is null || !excludeSlots.Contains(i)))
             {
                 return i;
             }
