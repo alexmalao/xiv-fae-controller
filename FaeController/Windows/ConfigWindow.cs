@@ -200,7 +200,14 @@ public class ConfigWindow : Window, IDisposable
             }
         }
 
+        ImGui.SameLine();
+        ImGuiComponents.HelpMarker(
+            "Currently doesn't work: the button will always show grayed out, even when Shinten is " +
+            "actually ready to use. Pressing it still correctly executes Shinten.");
+
         ImGui.TextWrapped(
             "Replaces Kaiten's action with Shinten so you can use Kaiten from your hotbar again. The button will show Kaiten but execute Shinten.");
+
+        ImGui.TextWrapped("Requires the Penumbra plugin to be installed and running to show Kaiten's icon.");
     }
 }

@@ -72,10 +72,11 @@ public sealed class Plugin : IDalamudPlugin
         untargetableBuffering = new UntargetableBuffering(Configuration, GameInterop);
         autoAttackSuppression = new AutoAttackSuppression(Configuration);
         nearestEnemyDistance = new NearestEnemyDistance(Configuration, AddonLifecycle);
-        kaitenRestoration = new KaitenRestoration(Configuration, GameInterop);
 
         // You might normally want to embed resources and load them from the manifest stream
         var faeImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "fae.png");
+        var kaitenImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "kaiten.png");
+        kaitenRestoration = new KaitenRestoration(Configuration, GameInterop, kaitenImagePath);
 
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this, faeImagePath);
@@ -185,6 +186,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         untargetableBuffering.Update();
         autoAttackSuppression.Update();
+        kaitenRestoration.Update();
 
         if (!Configuration.EnableClockSpotTargeting)
             return;

@@ -48,8 +48,8 @@ public unsafe class NearestEnemyDistance : IDisposable
         addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "_TargetInfo", OnTargetInfoPreDraw);
         addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "_TargetInfoMainTarget", OnTargetInfoPreDraw);
         CleanupAllNodes();
-        HideHpBarWidgetNode(Plugin.GameGui.GetAddonByName<AtkUnitBase>("_TargetInfo", 1));
-        HideHpBarWidgetNode(Plugin.GameGui.GetAddonByName<AtkUnitBase>("_TargetInfoMainTarget", 1));
+        DestroyHpBarWidgetNode(Plugin.GameGui.GetAddonByName<AtkUnitBase>("_TargetInfo", 1));
+        DestroyHpBarWidgetNode(Plugin.GameGui.GetAddonByName<AtkUnitBase>("_TargetInfoMainTarget", 1));
     }
 
     private void OnNamePlatePreDraw(AddonEvent type, AddonArgs args)
@@ -163,6 +163,28 @@ public unsafe class NearestEnemyDistance : IDisposable
         if (addon == null) return;
         var node = FindNodeById(addon, HpBarWidgetNodeId);
         if (node != null) node->AtkResNode.ToggleVisibility(false);
+    }
+
+    // Unlike HideHpBarWidgetNode, this unlinks the manually-spliced node from the addon's sibling
+    // chain and frees it, so a stale/dangling node can't survive a plugin reload and desync the
+    // addon's own node bookkeeping (AtkUldManager.Update reads NodeList against these pointers).
+    private static void DestroyHpBarWidgetNode(AtkUnitBase* addon)
+    {
+        if (addon == null) return;
+        var node = FindNodeById(addon, HpBarWidgetNodeId);
+        if (node == null) return;
+
+        var resNode = &node->AtkResNode;
+
+        if (resNode->ParentNode != null && resNode->ParentNode->ChildNode == resNode)
+            resNode->ParentNode->ChildNode = resNode->NextSiblingNode;
+        if (resNode->PrevSiblingNode != null)
+            resNode->PrevSiblingNode->NextSiblingNode = resNode->NextSiblingNode;
+        if (resNode->NextSiblingNode != null)
+            resNode->NextSiblingNode->PrevSiblingNode = resNode->PrevSiblingNode;
+
+        addon->UldManager.UpdateDrawNodeList();
+        resNode->Destroy(true);
     }
 
     private static AtkTextNode* FindNodeById(AtkUnitBase* addon, uint nodeId)
@@ -386,6 +408,8 @@ public unsafe class NearestEnemyDistance : IDisposable
 
     private void CleanupAllNodes()
     {
+        var addon = Plugin.GameGui.GetAddonByName<AddonNamePlate>("NamePlate", 1);
+
         for (var i = 0; i < MaxNameplates; i++)
         {
             if (customNodes[i] == null) continue;
@@ -396,6 +420,20 @@ public unsafe class NearestEnemyDistance : IDisposable
                 resNode->NextSiblingNode->PrevSiblingNode = resNode->PrevSiblingNode;
             if (resNode->PrevSiblingNode != null)
                 resNode->PrevSiblingNode->NextSiblingNode = resNode->NextSiblingNode;
+
+            // Refreshing the component's draw node list here (mirroring the attach side) keeps
+            // its NodeList/count arrays from going stale across unlink+destroy - skipping this
+            // caused a crash in AtkUnitBase.CountCollisionNodes on plugin reload. We re-fetch the
+            // live component via the current addon/slot rather than trusting our own cached
+            // resNode->ParentNode, since that can go stale (pointing at freed/recycled memory) if
+            // the game rebuilt this nameplate slot's component since we attached to it - which
+            // caused a second, worse crash (AV inside UpdateDrawNodeList itself) when it happened.
+            if (addon != null)
+            {
+                var componentNode = addon->NamePlateObjectArray[i].RootComponentNode;
+                if (componentNode != null && componentNode->Component != null)
+                    componentNode->Component->UldManager.UpdateDrawNodeList();
+            }
 
             resNode->Destroy(true);
             customNodes[i] = null;
