@@ -13,7 +13,7 @@ public class ConfigWindow : Window, IDisposable
     {
         Flags = ImGuiWindowFlags.NoCollapse;
 
-        Size = new Vector2(400, 600);
+        Size = new Vector2(520, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
 
         configuration = plugin.Configuration;

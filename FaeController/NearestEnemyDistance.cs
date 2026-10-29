@@ -22,6 +22,12 @@ public unsafe class NearestEnemyDistance : IDisposable
     private const float WarningThreshold = 6f;
     private const float LargeAoeThreshold = 8f;
 
+    private const uint HpBarWidgetNodeId = 99099;
+    private const ushort HpBarWidgetWidth = 200;
+    private const ushort HpBarWidgetHeight = 14;
+    private const float HpBarWidgetOffsetX = -200f;
+    private const float HpBarWidgetOffsetY = 30f;
+
     private readonly AtkTextNode*[] customNodes = new AtkTextNode*[MaxNameplates];
 
     public NearestEnemyDistance(Configuration configuration, IAddonLifecycle addonLifecycle)
@@ -30,12 +36,18 @@ public unsafe class NearestEnemyDistance : IDisposable
         this.addonLifecycle = addonLifecycle;
 
         addonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnNamePlatePreDraw);
+        addonLifecycle.RegisterListener(AddonEvent.PreDraw, "_TargetInfo", OnTargetInfoPreDraw);
+        addonLifecycle.RegisterListener(AddonEvent.PreDraw, "_TargetInfoMainTarget", OnTargetInfoPreDraw);
     }
 
     public void Dispose()
     {
         addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "NamePlate", OnNamePlatePreDraw);
+        addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "_TargetInfo", OnTargetInfoPreDraw);
+        addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "_TargetInfoMainTarget", OnTargetInfoPreDraw);
         CleanupAllNodes();
+        HideHpBarWidgetNode(Plugin.GameGui.GetAddonByName<AtkUnitBase>("_TargetInfo", 1));
+        HideHpBarWidgetNode(Plugin.GameGui.GetAddonByName<AtkUnitBase>("_TargetInfoMainTarget", 1));
     }
 
     private void OnNamePlatePreDraw(AddonEvent type, AddonArgs args)
@@ -86,6 +98,118 @@ public unsafe class NearestEnemyDistance : IDisposable
             HideNode(i);
     }
 
+    private void OnTargetInfoPreDraw(AddonEvent type, AddonArgs args)
+    {
+        var addon = (AtkUnitBase*)args.Addon.Address;
+        if (addon == null) return;
+
+        var otherAddonName = args.AddonName == "_TargetInfoMainTarget" ? "_TargetInfo" : "_TargetInfoMainTarget";
+        var otherAddon = Plugin.GameGui.GetAddonByName<AtkUnitBase>(otherAddonName, 1);
+
+        if (!configuration.EnableNearestEnemyDistance)
+        {
+            HideHpBarWidgetNode(addon);
+            HideHpBarWidgetNode(otherAddon);
+            return;
+        }
+
+        var target = Plugin.TargetManager.Target;
+        if (target == null || target.ObjectKind != ObjectKind.BattleNpc)
+        {
+            HideHpBarWidgetNode(addon);
+            HideHpBarWidgetNode(otherAddon);
+            return;
+        }
+
+        var nearestDistance = CalculateNearestEnemyDistance(target);
+        if (nearestDistance >= float.MaxValue)
+        {
+            HideHpBarWidgetNode(addon);
+            HideHpBarWidgetNode(otherAddon);
+            return;
+        }
+
+        var node = FindNodeById(addon, HpBarWidgetNodeId);
+        if (node == null) node = CreateAndAttachHpBarWidgetNode(addon);
+        if (node != null)
+        {
+            node->SetText($"{nearestDistance:F1}y");
+            ApplyDistanceColor(node, nearestDistance);
+            node->AtkResNode.ToggleVisibility(true);
+        }
+
+        HideHpBarWidgetNode(otherAddon);
+    }
+
+    private static void HideHpBarWidgetNode(AtkUnitBase* addon)
+    {
+        if (addon == null) return;
+        var node = FindNodeById(addon, HpBarWidgetNodeId);
+        if (node != null) node->AtkResNode.ToggleVisibility(false);
+    }
+
+    private static AtkTextNode* FindNodeById(AtkUnitBase* addon, uint nodeId)
+    {
+        for (var i = 0; i < addon->UldManager.NodeListCount; i++)
+        {
+            var candidate = addon->UldManager.NodeList[i];
+            if (candidate != null && candidate->NodeId == nodeId)
+                return (AtkTextNode*)candidate;
+        }
+
+        return null;
+    }
+
+    private static AtkTextNode* CreateAndAttachHpBarWidgetNode(AtkUnitBase* addon)
+    {
+        var rootNode = addon->RootNode;
+        if (rootNode == null) return null;
+
+        var textNode = IMemorySpace.GetUISpace()->Create<AtkTextNode>();
+        if (textNode == null) return null;
+
+        textNode->AtkResNode.Type = NodeType.Text;
+        textNode->AtkResNode.NodeId = HpBarWidgetNodeId;
+        textNode->AtkResNode.SetWidth(HpBarWidgetWidth);
+        textNode->AtkResNode.SetHeight(HpBarWidgetHeight);
+        textNode->AtkResNode.SetPositionFloat(HpBarWidgetOffsetX, HpBarWidgetOffsetY);
+        textNode->AtkResNode.SetScale(1f, 1f);
+
+        textNode->FontSize = 14;
+        textNode->AlignmentType = AlignmentType.BottomRight;
+        textNode->FontType = FontType.Axis;
+        textNode->EdgeColor.R = 0;
+        textNode->EdgeColor.G = 0;
+        textNode->EdgeColor.B = 0;
+        textNode->EdgeColor.A = 200;
+        textNode->TextFlags = TextFlags.Edge;
+
+        var resNode = &textNode->AtkResNode;
+
+        // Mirrors the "Distance" plugin's AtkNodeHelpers.AttachTextNode: RootNode->ChildNode is not
+        // necessarily the first sibling, so walk PrevSiblingNode back to the true head before splicing in.
+        var lastNode = rootNode;
+        if (lastNode->ChildNode != null)
+        {
+            lastNode = lastNode->ChildNode;
+            while (lastNode->PrevSiblingNode != null)
+                lastNode = lastNode->PrevSiblingNode;
+
+            resNode->NextSiblingNode = lastNode;
+            resNode->ParentNode = rootNode;
+            lastNode->PrevSiblingNode = resNode;
+        }
+        else
+        {
+            rootNode->ChildNode = resNode;
+            resNode->ParentNode = rootNode;
+        }
+
+        addon->UldManager.UpdateDrawNodeList();
+
+        return textNode;
+    }
+
     private static float CalculateNearestEnemyDistance(IGameObject currentTarget)
     {
         var nearest = float.MaxValue;
@@ -102,11 +226,11 @@ public unsafe class NearestEnemyDistance : IDisposable
             var dx = targetPos.X - obj.Position.X;
             var dz = targetPos.Z - obj.Position.Z;
             var centerToCenter = MathF.Sqrt(dx * dx + dz * dz);
-            var distanceToRing = centerToCenter - obj.HitboxRadius;
-            if (distanceToRing < 0) distanceToRing = 0;
+            var centerToRing = centerToCenter - obj.HitboxRadius;
+            if (centerToRing < 0) centerToRing = 0;
 
-            if (distanceToRing < nearest)
-                nearest = distanceToRing;
+            if (centerToRing < nearest)
+                nearest = centerToRing;
         }
 
         return nearest;
@@ -117,9 +241,13 @@ public unsafe class NearestEnemyDistance : IDisposable
         var node = GetOrCreateNode(addon, index);
         if (node == null) return;
 
-        var text = $"{distance:F1}y";
-        node->SetText(text);
+        node->SetText($"{distance:F1}y");
+        ApplyDistanceColor(node, distance);
+        node->AtkResNode.ToggleVisibility(true);
+    }
 
+    private static void ApplyDistanceColor(AtkTextNode* node, float distance)
+    {
         if (distance <= AoeThreshold)
         {
             node->TextColor.R = 100;
@@ -148,8 +276,6 @@ public unsafe class NearestEnemyDistance : IDisposable
             node->TextColor.B = 80;
             node->TextColor.A = 255;
         }
-
-        node->AtkResNode.ToggleVisibility(true);
     }
 
     private AtkTextNode* GetOrCreateNode(AddonNamePlate* addon, int index)
