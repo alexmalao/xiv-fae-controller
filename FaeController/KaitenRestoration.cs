@@ -57,10 +57,15 @@ public unsafe class KaitenRestoration : IDisposable
     private delegate uint CheckActionResourcesDelegate(
         ActionManager* actionManager, ActionType actionType, uint actionId, void* actionData);
 
+    private delegate void PrepareSlotForRenderDelegate(
+        RaptureHotbarModule* module, RaptureHotbarModule.HotbarSlot* slot,
+        RaptureHotbarModule.HotbarUIIntermediate* intermediate);
+
     private readonly Hook<UseActionDelegate> useActionHook;
     private readonly Hook<GetActionCostDelegate> getActionCostHook;
     private readonly Hook<GetHotbarCooldownInfoDelegate> getHotbarCooldownInfoHook;
     private readonly Hook<CheckActionResourcesDelegate> checkActionResourcesHook;
+    private readonly Hook<PrepareSlotForRenderDelegate> prepareSlotForRenderHook;
 
     private bool hooksEnabled;
 
@@ -86,6 +91,10 @@ public unsafe class KaitenRestoration : IDisposable
             (nint)ActionManager.MemberFunctionPointers.CheckActionResources,
             CheckActionResourcesDetour);
 
+        prepareSlotForRenderHook = gameInterop.HookFromAddress<PrepareSlotForRenderDelegate>(
+            (nint)RaptureHotbarModule.MemberFunctionPointers.PrepareSlotForRender,
+            PrepareSlotForRenderDetour);
+
         // These hooks intercept every action's cost/use/cooldown/resource check, not just
         // Kaiten's, so they must only be live while the feature is actually enabled - leaving them
         // permanently enabled caused every GCD's recast/ready display to go wrong even with the
@@ -97,7 +106,10 @@ public unsafe class KaitenRestoration : IDisposable
         // with Kaiten never placed on a hotbar; IsActionHighlighted: the highlighted/"castable"
         // border started appearing on unrelated GCDs that shouldn't have it) - both were removed.
         // GetHotbarCooldownInfo and CheckActionResources, hooked the same way, did not reproduce
-        // either issue.
+        // either issue. PrepareSlotForRenderDetour takes a different, safer approach for the same
+        // goal: it never redirects the queried actionId (Original() always runs unmodified), and
+        // only overwrites the *output* availability/highlight fields for Kaiten's own slot
+        // afterward - so there's no shared input substitution to corrupt other actions' results.
         Update();
 
         ApplyPenumbraRedirects(kaitenIconReplacementPath, hagakureTmbReplacementPath, hagakurePapReplacementPath);
@@ -109,6 +121,7 @@ public unsafe class KaitenRestoration : IDisposable
         getActionCostHook.Dispose();
         getHotbarCooldownInfoHook.Dispose();
         checkActionResourcesHook.Dispose();
+        prepareSlotForRenderHook.Dispose();
     }
 
     public void Update()
@@ -123,6 +136,7 @@ public unsafe class KaitenRestoration : IDisposable
             getActionCostHook.Enable();
             getHotbarCooldownInfoHook.Enable();
             checkActionResourcesHook.Enable();
+            prepareSlotForRenderHook.Enable();
         }
         else
         {
@@ -130,6 +144,7 @@ public unsafe class KaitenRestoration : IDisposable
             getActionCostHook.Disable();
             getHotbarCooldownInfoHook.Disable();
             checkActionResourcesHook.Disable();
+            prepareSlotForRenderHook.Disable();
         }
     }
 
@@ -316,6 +331,36 @@ public unsafe class KaitenRestoration : IDisposable
         }
 
         return checkActionResourcesHook.Original(actionManager, actionType, actionId, actionData);
+    }
+
+    // Unlike the other detours, this never substitutes the queried actionId - Original() always
+    // evaluates Kaiten's own (always-unavailable, since it's not a real learned action) data
+    // unmodified. Only afterward, for Kaiten's own slot specifically, do we overwrite the output
+    // availability/highlight fields with Shinten's real status, queried via a single direct call
+    // (not a hook) so there's no risk of this leaking into any other action's evaluation.
+    private void PrepareSlotForRenderDetour(
+        RaptureHotbarModule* module, RaptureHotbarModule.HotbarSlot* slot,
+        RaptureHotbarModule.HotbarUIIntermediate* intermediate)
+    {
+        prepareSlotForRenderHook.Original(module, slot, intermediate);
+
+        if (!configuration.EnableKaitenRestoration ||
+            slot->CommandType != RaptureHotbarModule.HotbarSlotType.Action ||
+            slot->CommandId != KaitenActionId)
+        {
+            return;
+        }
+
+        var actionManager = ActionManager.Instance();
+        if (actionManager == null) return;
+
+        var targetId = Plugin.ObjectTable.LocalPlayer?.GameObjectId ?? 0;
+        var status = actionManager->GetActionStatus(ActionType.Action, ShintenActionId, targetId, true, true, null);
+        var isReady = status == 0;
+
+        intermediate->ActionAvailable1 = isReady;
+        intermediate->ActionAvailable2 = isReady;
+        intermediate->DrawAnts = isReady;
     }
 
     public static void PlaceOnHotbar(int hotbarNumber)
