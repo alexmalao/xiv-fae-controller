@@ -1,26 +1,24 @@
-[
-  {
-    "Author": "Fae Nightwolf",
-    "Name": "Fae Nightwolf's Alteration Shop",
-    "Punchline": "Collection of QoL and Steam Controller clockspot targeting support.",
-    "Description": "Seats your party into clock spot positions to support controller radial clockspot targeting.",
-    "Tags": [
-      "party",
-      "targeting",
-      "utility",
-      "steamcontroller",
-      "buffering",
-      "autoattacks",
-      "kaiten"
-    ],
-    "InternalName": "FaeController",
-    "RepoUrl": "https://github.com/alexmalao/xiv-fae-controller",
-    "IconUrl": "https://raw.githubusercontent.com/alexmalao/xiv-fae-controller/master/Data/fae.png",
-    "LastUpdate": 1793161034,
-    "DownloadLinkInstall": "https://github.com/alexmalao/xiv-fae-controller/releases/latest/download/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/alexmalao/xiv-fae-controller/releases/latest/download/latest.zip",
-    "AssemblyVersion": "0.0.0.1",
-    "ApplicableVersion": "any",
-    "DalamudApiLevel": "15"
-  }
-]
+{
+  "Author": "Fae Nightwolf",
+  "Name": "Fae Nightwolf's Alteration Shop",
+  "Punchline": "Collection of QoL and Steam Controller clockspot targeting support.",
+  "Description": "Seats your party into clock spot positions to support controller radial clockspot targeting.",
+  "Tags": [
+    "party",
+    "targeting",
+    "utility",
+    "steamcontroller",
+    "buffering",
+    "autoattacks",
+    "kaiten"
+  ],
+  "InternalName": "FaeController",
+  "RepoUrl": "https://github.com/alexmalao/xiv-fae-controller",
+  "IconUrl": "https://raw.githubusercontent.com/alexmalao/xiv-fae-controller/master/Data/fae.png",
+  "LastUpdate": 1793328748,
+  "DownloadLinkInstall": "https://github.com/alexmalao/xiv-fae-controller/releases/latest/download/latest.zip",
+  "DownloadLinkUpdate": "https://github.com/alexmalao/xiv-fae-controller/releases/latest/download/latest.zip",
+  "AssemblyVersion": "0.1.0.0",
+  "ApplicableVersion": "any",
+  "DalamudApiLevel": "15"
+}
