@@ -3,7 +3,6 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface.Components;
 using Dalamud.Interface.Windowing;
 using Dalamud.Utility;
 
@@ -25,6 +24,19 @@ public class ConfigWindow : Window, IDisposable
 
     public void Dispose() { }
 
+    // Mirrors ImGuiComponents.HelpMarker's tooltip wrapping, but anchored to whatever widget was
+    // just drawn (the checkbox itself) instead of a separate "(?)" icon.
+    private static void ShowTooltipIfHovered(string text)
+    {
+        if (!ImGui.IsItemHovered()) return;
+
+        ImGui.BeginTooltip();
+        ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35f);
+        ImGui.TextUnformatted(text);
+        ImGui.PopTextWrapPos();
+        ImGui.EndTooltip();
+    }
+
     public override void Draw()
     {
         var enableClockSpots = configuration.EnableClockSpotTargeting;
@@ -33,6 +45,8 @@ public class ConfigWindow : Window, IDisposable
             configuration.EnableClockSpotTargeting = enableClockSpots;
             configuration.Save();
         }
+
+        ShowTooltipIfHovered("Allow binding clockspots to numpad inputs for targeting via Steam Controller");
 
         if (!enableClockSpots)
         {
@@ -48,8 +62,7 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        ImGui.SameLine();
-        ImGuiComponents.HelpMarker(
+        ShowTooltipIfHovered(
             "When checked, Numpad 1-8 will hard target the matching clock spot instead of soft targeting it.");
 
         ImGui.Spacing();
@@ -77,8 +90,7 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        ImGui.SameLine();
-        ImGuiComponents.HelpMarker("Closing the clockspot window will lock it and make it passthrough");
+        ShowTooltipIfHovered("Closing the clockspot window will lock it and make it passthrough");
 
         if (!lockOnClose)
         {
@@ -115,6 +127,8 @@ public class ConfigWindow : Window, IDisposable
             configuration.EnableUntargetableBuffering = untargetableBuffering;
             configuration.Save();
         }
+
+        ShowTooltipIfHovered("Allows buffering skills without requiring a target");
 
         if (!untargetableBuffering)
         {
@@ -158,8 +172,7 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        ImGui.SameLine();
-        ImGuiComponents.HelpMarker(
+        ShowTooltipIfHovered(
             "Experimental: pins the auto-attack swing timer to zero while out of combat so the " +
             "first swing doesn't fire instantly on engagement. Verify in-game before relying on it.");
 
@@ -174,8 +187,7 @@ public class ConfigWindow : Window, IDisposable
             configuration.Save();
         }
 
-        ImGui.SameLine();
-        ImGuiComponents.HelpMarker(
+        ShowTooltipIfHovered(
             "Shows distance to hitbox of nearest enemy on the main target ui, as well as how close " +
             "other enemies are to your current target on their nameplates");
 
@@ -202,14 +214,8 @@ public class ConfigWindow : Window, IDisposable
             }
         }
 
-        ImGui.SameLine();
-        ImGuiComponents.HelpMarker(
-            "Currently doesn't work: the button will always show grayed out, even when Shinten is " +
-            "actually ready to use. Pressing it still correctly executes Shinten.");
+        ShowTooltipIfHovered("Lets you use Kaiten again for 25 Kenki (secretly executes Shinten under the hood).");
 
-        ImGui.TextWrapped(
-            "Replaces Kaiten's action with Shinten so you can use Kaiten from your hotbar again. The button will show Kaiten but execute Shinten.");
-
-        ImGui.TextWrapped("Requires the Penumbra plugin to be installed and running to show Kaiten's icon.");
+        ImGui.TextColored(new Vector4(1f, 0.82f, 0.2f, 1f), "NOTE: Requires the Penumbra plugin");
     }
 }
