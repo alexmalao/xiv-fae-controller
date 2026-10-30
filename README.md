@@ -18,7 +18,7 @@ This plugin is to offer a bunch of QoL changes that aren't covered by existing p
 - Allows buffering GCDs/oGCDs on targets that have yet to appear
 - Configurable between 100ms to 1000ms (default 500ms)
 
-##### Disable Auto-attacks on Encounter Start:
+##### Disable Auto-attacks while Out of Combat:
 - Disables auto-attacks on weaponskills and abilities used out of combat
 
 ##### Nearest Enemy Distance:
