@@ -14,7 +14,7 @@ This plugin is to offer a bunch of QoL changes that aren't covered by existing p
 ##### **Return Kaiten**:
 - Restores Kaiten to the beautiful way it once was (costs 25 kenki and needs a target)
 
-##### Untargetable Buffering:
+##### No Target Buffering:
 - Allows buffering GCDs/oGCDs on targets that have yet to appear
 - Configurable between 100ms to 1000ms (default 500ms)
 
