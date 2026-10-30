@@ -30,7 +30,6 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
-    [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
@@ -50,7 +49,16 @@ public sealed class Plugin : IDalamudPlugin
         VirtualKey.NUMPAD5, VirtualKey.NUMPAD6, VirtualKey.NUMPAD7, VirtualKey.NUMPAD8,
     };
 
-    private readonly bool[] clockSpotKeyWasDown = new bool[ClockSpotKeys.Length];
+    // The low bit reports "pressed since the last call to GetAsyncKeyState" rather than "down
+    // right now" -- so a brief synthetic press-and-release from a controller radial's slice
+    // switch still registers even if it lands entirely between two Framework.Update polls
+    // (which gets more likely exactly during combat, when frame-rate dips from VFX/AOE load).
+    // Dalamud's own IKeyState only exposes current-frame down/up and would miss those.
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int virtualKeyCode);
+
+    private static bool WasClockSpotKeyPressedSinceLastPoll(VirtualKey key) =>
+        (GetAsyncKeyState((int)key) & 0x1) != 0;
 
     public Configuration Configuration { get; init; }
 
@@ -205,10 +213,7 @@ public sealed class Plugin : IDalamudPlugin
 
         for (var i = 0; i < ClockSpotKeys.Length; i++)
         {
-            var isDown = KeyState[ClockSpotKeys[i]];
-
-            // Only react on the press edge, not every frame the key is held down.
-            if (isDown && !clockSpotKeyWasDown[i])
+            if (WasClockSpotKeyPressedSinceLastPoll(ClockSpotKeys[i]))
             {
                 var target = ClockSpotsWindow.ResolveSlotTarget(i);
                 if (Configuration.HardTargetClockSpots)
@@ -220,8 +225,6 @@ public sealed class Plugin : IDalamudPlugin
                     TargetManager.SoftTarget = target;
                 }
             }
-
-            clockSpotKeyWasDown[i] = isDown;
         }
     }
 
