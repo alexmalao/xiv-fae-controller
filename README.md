@@ -116,7 +116,9 @@ See the [template reference doc](docs/SAMPLEPLUGIN_TEMPLATE.md) for more detail 
 
 ## Development Notes
 
-<!-- Architecture decisions, gotchas, links to design docs, etc. go here as the plugin grows. -->e
+![I vibe coded this. I'm not lying, and I won't deny it.](Data/vibe-coded.jpg)
+
+<!-- Architecture decisions, gotchas, links to design docs, etc. go here as the plugin grows. -->
 
 ## Roadmap / TODO
 
