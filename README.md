@@ -12,7 +12,7 @@ This plugin is to offer a bunch of QoL changes that aren't covered by existing p
 - Party members can easily be dragged into new clock spot positions
 
 ##### **Return Kaiten**:
-- Restores Kaiten to the beautiful way it once was (costs 25 kenki now instead)
+- Restores Kaiten to the beautiful way it once was (costs 25 kenki and needs a target)
 
 ##### Untargetable Buffering:
 - Allows buffering GCDs/oGCDs on targets that have yet to appear
