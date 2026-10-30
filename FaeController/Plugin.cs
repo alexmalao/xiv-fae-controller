@@ -38,7 +38,6 @@ public sealed class Plugin : IDalamudPlugin
     private const string ConfigCommandName = "/faeconfig";
     private const string ClockSpotsCommandName = "/faeclocks";
     private const string KaitenCommandName = "/faekaiten";
-    private const string AutoAttackProbeCommandName = "/faeprobe";
 
     // Arbitrary id used to register our "clockspots" chat link handler with Dalamud.
     private const uint ClockSpotsLinkCommandId = 1;
@@ -62,7 +61,6 @@ public sealed class Plugin : IDalamudPlugin
 
     private readonly UntargetableBuffering untargetableBuffering;
     private readonly AutoAttackSuppression autoAttackSuppression;
-    private readonly AutoAttackMemoryProbe autoAttackMemoryProbe = new();
     private readonly NearestEnemyDistance nearestEnemyDistance;
     private readonly KaitenRestoration kaitenRestoration;
     private readonly DalamudLinkPayload clockSpotsLinkPayload;
@@ -113,11 +111,6 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Places Kaiten on the specified hotbar. Usage: /faekaiten <hotbar_number>"
         });
 
-        CommandManager.AddHandler(AutoAttackProbeCommandName, new CommandInfo(OnAutoAttackProbeCommand)
-        {
-            HelpMessage = "Diagnostic: arms an in-process watch on the auto-attack flag and logs whatever writes it."
-        });
-
         // Tell the UI system that we want our windows to be drawn through the window system
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
 
@@ -159,14 +152,12 @@ public sealed class Plugin : IDalamudPlugin
 
         untargetableBuffering.Dispose();
         autoAttackSuppression.Dispose();
-        autoAttackMemoryProbe.Dispose();
         nearestEnemyDistance.Dispose();
         kaitenRestoration.Dispose();
 
         CommandManager.RemoveHandler(ConfigCommandName);
         CommandManager.RemoveHandler(ClockSpotsCommandName);
         CommandManager.RemoveHandler(KaitenCommandName);
-        CommandManager.RemoveHandler(AutoAttackProbeCommandName);
 
         ChatGui.RemoveChatLinkHandler(ClockSpotsLinkCommandId);
     }
@@ -199,15 +190,9 @@ public sealed class Plugin : IDalamudPlugin
         KaitenRestoration.PlaceOnHotbar(hotbarNumber);
     }
 
-    private void OnAutoAttackProbeCommand(string command, string args)
-    {
-        autoAttackMemoryProbe.Arm();
-    }
-
     private void OnFrameworkUpdate(IFramework framework)
     {
         untargetableBuffering.Update();
-        autoAttackSuppression.Update();
         kaitenRestoration.Update();
 
         if (pendingClockSpotPrompt)

@@ -173,8 +173,8 @@ public class ConfigWindow : Window, IDisposable
         }
 
         ShowTooltipIfHovered(
-            "Experimental: pins the auto-attack swing timer to zero while out of combat so the " +
-            "first swing doesn't fire instantly on engagement. Verify in-game before relying on it.");
+            "Blocks the game from re-enabling auto-attack while out of combat, so the first hit " +
+            "on pull comes from your opener instead of an instant auto-attack swing.");
 
         ImGui.Spacing();
         ImGui.Separator();
